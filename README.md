@@ -6,12 +6,12 @@
 
 **协议接口**
 
-`
-	type ChannelProtocol interface {
-		Encode(context *ChannelHandlerContext, warp *ChannekProtocolWarp, data interface{})
-		Decode(context *ChannelHandlerContext, warp *ChannekProtocolWarp, data interface{})
-	}
-`
+
+`	type ChannelProtocol interface {`
+`		Encode(context *ChannelHandlerContext, warp *ChannekProtocolWarp, data interface{})`
+`		Decode(context *ChannelHandlerContext, warp *ChannekProtocolWarp, data interface{})`
+`	}`
+
 
 **处理接口**
 
