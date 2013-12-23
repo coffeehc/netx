@@ -34,7 +34,7 @@ func (this *ChannelHandlerContextFactory) CreatChannelHandlerContext(conn net.Co
 	channelHandlerContext := NewChannelHandlerContext(this.idSeed, conn)
 	this.initContextFunc(channelHandlerContext)
 	if channelHandlerContext.headProtocol == nil {
-		p := NewChannelProtocolWarp(new(defaultChannelProtocol))
+		p := newChannelProtocolWarp(new(defaultChannelProtocol))
 		channelHandlerContext.headProtocol = p
 		channelHandlerContext.tailProtocol = p
 	}

@@ -3,8 +3,8 @@ package coffeenet
 
 import (
 	"fmt"
+	"github.com/coffeehc/logger"
 	"io"
-	"logger"
 	"net"
 	"sync"
 )
@@ -12,6 +12,27 @@ import (
 const (
 	DEFAULT_BUF_SIZE int = 512
 )
+
+type ChannelListen interface {
+	OnActive(context *ChannelHandlerContext)
+	OnClose(context *ChannelHandlerContext)
+	OnException(context *ChannelHandlerContext, err error)
+}
+
+type SimpleChannelListen struct {
+	ChannelListen
+}
+
+func (this *SimpleChannelListen) OnActive(context *ChannelHandlerContext) {
+	//do Nothing
+}
+
+func (this *SimpleChannelListen) OnClose(context *ChannelHandlerContext) {
+	//do Nothing
+}
+func (this *SimpleChannelListen) OnException(context *ChannelHandlerContext, err error) {
+	//do Nothing
+}
 
 type ChannelHandler interface {
 	Active(context *ChannelHandlerContext)
@@ -39,9 +60,10 @@ type ChannelHandlerContext struct {
 	tailProtocol *ChannekProtocolWarp
 	isOpen       bool
 	lock         *sync.Mutex
+	listens      []ChannelListen
 }
 
-func NewChannelProtocolWarp(protocol ChannelProtocol) *ChannekProtocolWarp {
+func newChannelProtocolWarp(protocol ChannelProtocol) *ChannekProtocolWarp {
 	warp := new(ChannekProtocolWarp)
 	warp.protocol = protocol
 	return warp
@@ -76,7 +98,7 @@ func (this *ChannekProtocolWarp) FireNextWrite(context *ChannelHandlerContext, d
 		warp.write(context, data)
 	} else {
 		if v, ok := data.([]byte); ok {
-			context.write(v)
+			go context.write(v)
 		} else {
 			context.fireException(fmt.Errorf("发送的数据不能转换为byte数组"))
 		}
@@ -89,7 +111,20 @@ func NewChannelHandlerContext(id int, conn net.Conn) *ChannelHandlerContext {
 	channelHandlerContext.id = id
 	channelHandlerContext.conn = conn
 	channelHandlerContext.lock = new(sync.Mutex)
+	channelHandlerContext.listens = make([]ChannelListen, 0)
 	return channelHandlerContext
+}
+
+func (this *ChannelHandlerContext) AddListen(listen ChannelListen) {
+	this.listens = append(this.listens, listen)
+}
+
+func (this *ChannelHandlerContext) RemortAddr() net.Addr {
+	return this.conn.RemoteAddr()
+}
+
+func (this *ChannelHandlerContext) LocalAddr() net.Addr {
+	return this.conn.LocalAddr()
 }
 
 func (this *ChannelHandlerContext) SetHandler(handler ChannelHandler) {
@@ -99,7 +134,7 @@ func (this *ChannelHandlerContext) SetHandler(handler ChannelHandler) {
 func (this *ChannelHandlerContext) SetProtocols(protocols []ChannelProtocol) {
 	var curWarp *ChannekProtocolWarp
 	for _, protocol := range protocols {
-		warp := NewChannelProtocolWarp(protocol)
+		warp := newChannelProtocolWarp(protocol)
 		if this.headProtocol == nil {
 			this.headProtocol = warp
 		} else {
@@ -114,12 +149,27 @@ func (this *ChannelHandlerContext) SetProtocols(protocols []ChannelProtocol) {
 func (this *ChannelHandlerContext) handle() {
 	logger.Debugf("已经建立连接:%s->%s", this.conn.LocalAddr(), this.conn.RemoteAddr())
 	this.handler.Active(this)
+	go func(this *ChannelHandlerContext) {
+		defer func() {
+			if err := recover(); err != nil {
+				logger.Errorf("系统异常:%s", err)
+			}
+		}()
+		for _, l := range this.listens {
+			l.OnActive(this)
+		}
+	}(this)
 	this.isOpen = true
 	bytes := make([]byte, 1024)
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Debugf("处理连接出现了异常:%s", err)
+		}
+	}()
 	for this.isOpen {
 		i, err := this.conn.Read(bytes)
 		if err != nil {
-			this.handler.Exception(this, err)
+			this.fireException(fmt.Errorf("接受内容异常,%s", err))
 			if err == io.EOF {
 				this.Close()
 			}
@@ -131,13 +181,29 @@ func (this *ChannelHandlerContext) handle() {
 }
 
 func (this *ChannelHandlerContext) Close() {
-	this.isOpen = false
-	err := this.conn.Close()
-	if err != nil {
-		this.handler.Exception(this, err)
+	if this.isOpen {
+		this.isOpen = false
+		err := this.conn.Close()
+		if err != nil {
+			this.fireException(err)
+		}
+		logger.Debugf("关闭了连接,%s", this.conn.RemoteAddr().String())
+		this.handler.ChannelClose(this)
+		go func(this *ChannelHandlerContext) {
+			defer func() {
+				if err := recover(); err != nil {
+					logger.Errorf("系统异常:%s", err)
+				}
+			}()
+			for _, l := range this.listens {
+				l.OnClose(this)
+			}
+		}(this)
 	}
-	logger.Debugf("关闭了连接")
-	this.handler.ChannelClose(this)
+}
+
+func (this *ChannelHandlerContext) IsOpen() bool {
+	return this.isOpen
 }
 
 /*
@@ -146,6 +212,16 @@ func (this *ChannelHandlerContext) Close() {
 func (this *ChannelHandlerContext) fireException(err error) {
 	logger.Debugf("获取了一个异常事件:%s", err)
 	this.handler.Exception(this, err)
+	go func(this *ChannelHandlerContext, err error) {
+		defer func() {
+			if err := recover(); err != nil {
+				logger.Errorf("系统异常:%s", err)
+			}
+		}()
+		for _, l := range this.listens {
+			l.OnException(this, err)
+		}
+	}(this, err)
 }
 
 func (this *ChannelHandlerContext) Write(data interface{}) {
@@ -157,7 +233,7 @@ func (this *ChannelHandlerContext) write(data []byte) {
 	defer this.lock.Unlock()
 	_, err := this.conn.Write(data)
 	if err != nil {
-		this.handler.Exception(this, err)
+		this.fireException(err)
 	}
 }
 

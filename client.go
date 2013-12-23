@@ -2,8 +2,9 @@ package coffeenet
 
 import (
 	"fmt"
-	"logger"
+	"github.com/coffeehc/logger"
 	"net"
+	"time"
 )
 
 type Client struct {
@@ -18,8 +19,12 @@ func NewClient(host string, netType string) *Client {
 	return client
 }
 
-func (this *Client) Connect() (*ChannelHandlerContext, error) {
-	conn, err := net.Dial(this.netType, this.host)
+func (this *Client) Connect(timeout time.Duration) (*ChannelHandlerContext, error) {
+	var d net.Dialer
+	if timeout != 0 {
+		d = net.Dialer{Timeout: timeout}
+	}
+	conn, err := d.Dial(this.netType, this.host)
 	if err != nil {
 		return nil, fmt.Errorf("connect出现错误:%s", err)
 	}

@@ -4,7 +4,7 @@ package coffeenet
 import (
 	"bytes"
 	"encoding/binary"
-	"logger"
+	"github.com/coffeehc/logger"
 )
 
 type LengthFieldProtocol struct {
@@ -20,8 +20,13 @@ func NewLengthFieldProtocol(lengthFieldLength int) *LengthFieldProtocol {
 	}
 	p := new(LengthFieldProtocol)
 	p.lengthFieldLength = lengthFieldLength
+	p.buf = bytes.NewBuffer(nil)
 	return p
+}
 
+func (this *LengthFieldProtocol) reset() {
+	this.length = 0
+	this.buf.Reset()
 }
 
 func (this *LengthFieldProtocol) Encode(context *ChannelHandlerContext, warp *ChannekProtocolWarp, data interface{}) {
@@ -74,41 +79,43 @@ func (this *LengthFieldProtocol) Decode(context *ChannelHandlerContext, warp *Ch
 			return
 		}
 		if this.length == 0 {
-			if this.buf == nil {
-				this.buf = bytes.NewBuffer(nil)
-			}
 			lengthSize := this.lengthFieldLength - this.buf.Len()
-			if len(v) < lengthSize {
+			dataLength := len(v)
+			if dataLength < lengthSize {
 				this.buf.Write(v)
-				logger.Warn("读取的数据不满表述长度的内容")
 				return
-			} else {
-				if lengthSize > 0 {
-					this.buf.Write(v[:lengthSize])
-				}
-				switch this.lengthFieldLength {
-				case 1:
-					this.length = int64(this.buf.Bytes()[0])
-				case 2:
-					this.length = int64(binary.BigEndian.Uint16(this.buf.Bytes()))
-				case 4:
-					this.length = int64(binary.BigEndian.Uint32(this.buf.Bytes()))
-				case 8:
-					this.length = int64(binary.BigEndian.Uint64(this.buf.Bytes()))
-				}
-				this.buf = bytes.NewBuffer(nil)
-				v = v[lengthSize:]
 			}
+			if lengthSize > 0 { //不可能有出现0的情况
+				this.buf.Write(v[:lengthSize])
+			} else {
+				logger.Debugf("出现了不可能的情况:lengthSize=%d", lengthSize)
+			}
+			switch this.lengthFieldLength {
+			case 1:
+				this.length = int64(this.buf.Bytes()[0])
+			case 2:
+				this.length = int64(binary.BigEndian.Uint16(this.buf.Bytes()))
+			case 4:
+				this.length = int64(binary.BigEndian.Uint32(this.buf.Bytes()))
+			case 8:
+				this.length = int64(binary.BigEndian.Uint64(this.buf.Bytes()))
+			}
+			this.buf.Reset()
+			v = v[lengthSize:dataLength]
 		}
 		curLength := int64(this.buf.Len())
 		lastLength := this.length - curLength
-		if int64(len(v)) < lastLength {
+		dataLength := int64(len(v))
+		if dataLength < lastLength {
 			this.buf.Write(v)
-		} else {
-			this.buf.Write(v[:lastLength])
-			warp.FireNextRead(context, this.buf.Bytes())
-			this.length = 0
-			this.buf = nil
+			return
+		}
+		this.buf.Write(v[:lastLength])
+		result := make([]byte, this.length)
+		copy(result, this.buf.Bytes())
+		warp.FireNextRead(context, result)
+		this.reset()
+		if dataLength > lastLength {
 			this.Decode(context, warp, v[lastLength:])
 		}
 	} else {
