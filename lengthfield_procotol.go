@@ -15,8 +15,7 @@ type LengthFieldProtocol struct {
 
 func NewLengthFieldProtocol(lengthFieldLength int) *LengthFieldProtocol {
 	if lengthFieldLength != 1 && lengthFieldLength != 2 && lengthFieldLength != 4 && lengthFieldLength != 8 {
-		logger.Error("设置的字段长度必须是1,2,4,8,否则协议无法生效")
-		return nil
+		panic("设置的字段长度必须是1,2,4,8,否则协议无法生效")
 	}
 	p := new(LengthFieldProtocol)
 	p.lengthFieldLength = lengthFieldLength
@@ -29,7 +28,7 @@ func (this *LengthFieldProtocol) reset() {
 	this.buf.Reset()
 }
 
-func (this *LengthFieldProtocol) Encode(context *ChannelHandlerContext, warp *ChannekProtocolWarp, data interface{}) {
+func (this *LengthFieldProtocol) Encode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
 	if v, ok := data.([]byte); ok {
 		length := len(v)
 		if length <= 0 {
@@ -72,7 +71,7 @@ func (this *LengthFieldProtocol) Encode(context *ChannelHandlerContext, warp *Ch
 	}
 }
 
-func (this *LengthFieldProtocol) Decode(context *ChannelHandlerContext, warp *ChannekProtocolWarp, data interface{}) {
+func (this *LengthFieldProtocol) Decode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
 	if v, ok := data.([]byte); ok {
 		if len(v) == 0 {
 			logger.Warn("读取的数据为空")

@@ -2,9 +2,10 @@ package coffeenet
 
 import (
 	"fmt"
-	"github.com/coffeehc/logger"
 	"net"
 	"time"
+
+	"github.com/coffeehc/logger"
 )
 
 type Client struct {
@@ -12,10 +13,12 @@ type Client struct {
 	conn net.Conn
 }
 
-func NewClient(host string, netType string) *Client {
+func NewClient(host string, netType string, workPoolSize int) *Client {
 	client := new(Client)
 	client.host = host
 	client.netType = netType
+	client.workConcurrent = workPoolSize
+	client.initWorkPool()
 	return client
 }
 
@@ -30,7 +33,7 @@ func (this *Client) Connect(timeout time.Duration) (*ChannelHandlerContext, erro
 	}
 	this.conn = conn
 	logger.Infof("已经connect:[%s]%s->%s", this.netType, conn.LocalAddr(), conn.RemoteAddr())
-	channelHandlerContext := this.channelHandlerContextFactory.CreatChannelHandlerContext(conn)
+	channelHandlerContext := this.channelHandlerContextFactory.CreatChannelHandlerContext(conn, this.workPool)
 	go channelHandlerContext.handle()
 	return channelHandlerContext, nil
 }

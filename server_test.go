@@ -2,8 +2,7 @@ package coffeenet
 
 import (
 	"fmt"
-	"logger"
-	//"runtime"
+	"github.com/coffeehc/logger"
 	"testing"
 	"time"
 )
@@ -33,10 +32,8 @@ func (this *testHandler) ChannelClose(context *ChannelHandlerContext) {
 }
 
 func TestServer(t *testing.T) {
-	logger.StartDevModel()
 	server := NewServer("127.0.0.1:800", "tcp")
 	channelHandlerContextFactory := NewChannelHandlerContextFactory(func(context *ChannelHandlerContext) {
-		//, NewTerminalProtocol()
 		context.SetProtocols([]ChannelProtocol{NewLengthFieldProtocol(4)})
 		context.SetHandler(new(testHandler))
 	})
@@ -45,22 +42,13 @@ func TestServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("启动服务器出现错误:%s", err)
 	}
-	//client := NewClient("127.0.0.1:800", "tcp")
-	//client.SetChannelHandlerContextFactory(channelHandlerContextFactory)
-	//for i := 0; i < 1; i++ {
-	//	context, err := client.Connect(0)
-	//	if err != nil {
-	//		t.Fatalf("连接服务器出现错误:%s", err)
-	//	}
-	//	context.Write([]byte(fmt.Sprintln("开始了\nnext")))
-	//}
-	//for {
-	//	logger.Debugf("当前运行的goroutune数量为:%d", runtime.NumGoroutine())
-	//	memStat := new(runtime.MemStats)
-	//	runtime.ReadMemStats(memStat)
-	//	logger.Debugf("当前运行的GC次数:%d,总内存:%d", memStat.NumGC, memStat.Alloc)
-	//	time.Sleep(500 * time.Millisecond)
-	//}
-	time.Sleep(time.Second * 20000)
-
+	client := NewClient("127.0.0.1:800", "tcp")
+	client.SetChannelHandlerContextFactory(channelHandlerContextFactory)
+	context, err := client.Connect(0)
+	if err != nil {
+		t.Fatalf("连接服务器出现错误:%s", err)
+	}
+	context.Write([]byte(fmt.Sprintln("开始了\nnext")))
+	context.Close()
+	server.Close()
 }

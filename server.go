@@ -3,8 +3,9 @@ package coffeenet
 
 import (
 	"fmt"
-	"github.com/coffeehc/logger"
 	"net"
+
+	"github.com/coffeehc/logger"
 )
 
 type Server struct {
@@ -13,11 +14,13 @@ type Server struct {
 	group    map[int]*ChannelHandlerContext
 }
 
-func NewServer(host string, netType string) *Server {
+func NewServer(host string, netType string, workPoolSize int) *Server {
 	server := new(Server)
 	server.host = host
 	server.netType = netType
 	server.group = make(map[int]*ChannelHandlerContext)
+	server.workConcurrent = workPoolSize
+	server.initWorkPool()
 	return server
 }
 
@@ -40,8 +43,9 @@ func (this *Server) Bind() error {
 			if err != nil {
 				logger.Warnf("Accept出现错误:%s", err)
 			} else {
-				channelHandlerContext := this.channelHandlerContextFactory.CreatChannelHandlerContext(conn)
+				channelHandlerContext := this.channelHandlerContextFactory.CreatChannelHandlerContext(conn, this.workPool)
 				channelHandlerContext.AddListen(listen)
+				//TODO 此处可以限制连接数
 				go channelHandlerContext.handle()
 			}
 		}

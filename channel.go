@@ -3,10 +3,10 @@ package coffeenet
 
 import (
 	"fmt"
-	"github.com/coffeehc/logger"
 	"io"
 	"net"
-	"sync"
+
+	"github.com/coffeehc/logger"
 )
 
 const (
@@ -41,77 +41,25 @@ type ChannelHandler interface {
 	ChannelClose(context *ChannelHandlerContext)
 }
 
-type ChannelProtocol interface {
-	Encode(context *ChannelHandlerContext, warp *ChannekProtocolWarp, data interface{})
-	Decode(context *ChannelHandlerContext, warp *ChannekProtocolWarp, data interface{})
-}
-
-type ChannekProtocolWarp struct {
-	protocol ChannelProtocol
-	prve     *ChannekProtocolWarp
-	next     *ChannekProtocolWarp
-}
-
 type ChannelHandlerContext struct {
 	id           int
 	conn         net.Conn
 	handler      ChannelHandler
-	headProtocol *ChannekProtocolWarp
-	tailProtocol *ChannekProtocolWarp
+	headProtocol *ChannelProtocolWarp
+	tailProtocol *ChannelProtocolWarp
 	isOpen       bool
-	lock         *sync.Mutex
 	listens      []ChannelListen
+	remortAddr   net.Addr
+	workPool     chan int
 }
 
-func newChannelProtocolWarp(protocol ChannelProtocol) *ChannekProtocolWarp {
-	warp := new(ChannekProtocolWarp)
-	warp.protocol = protocol
-	return warp
-}
-
-func (this *ChannekProtocolWarp) read(context *ChannelHandlerContext, data interface{}) {
-	this.protocol.Decode(context, this, data)
-}
-
-func (this *ChannekProtocolWarp) FireNextRead(context *ChannelHandlerContext, data interface{}) {
-	if data == nil {
-		return
-	}
-	warp := this.next
-	if warp != nil {
-		warp.read(context, data)
-	} else {
-		go context.handler.ChannelRead(context, data)
-	}
-}
-
-func (this *ChannekProtocolWarp) write(context *ChannelHandlerContext, data interface{}) {
-	this.protocol.Encode(context, this, data)
-}
-
-func (this *ChannekProtocolWarp) FireNextWrite(context *ChannelHandlerContext, data interface{}) {
-	if data == nil {
-		return
-	}
-	warp := this.prve
-	if warp != nil {
-		warp.write(context, data)
-	} else {
-		if v, ok := data.([]byte); ok {
-			go context.write(v)
-		} else {
-			context.fireException(fmt.Errorf("发送的数据不能转换为byte数组"))
-		}
-
-	}
-}
-
-func NewChannelHandlerContext(id int, conn net.Conn) *ChannelHandlerContext {
+func NewChannelHandlerContext(id int, conn net.Conn, workPool chan int) *ChannelHandlerContext {
 	channelHandlerContext := new(ChannelHandlerContext)
 	channelHandlerContext.id = id
 	channelHandlerContext.conn = conn
-	channelHandlerContext.lock = new(sync.Mutex)
 	channelHandlerContext.listens = make([]ChannelListen, 0)
+	channelHandlerContext.remortAddr = conn.RemoteAddr()
+	channelHandlerContext.workPool = workPool
 	return channelHandlerContext
 }
 
@@ -120,7 +68,7 @@ func (this *ChannelHandlerContext) AddListen(listen ChannelListen) {
 }
 
 func (this *ChannelHandlerContext) RemortAddr() net.Addr {
-	return this.conn.RemoteAddr()
+	return this.remortAddr
 }
 
 func (this *ChannelHandlerContext) LocalAddr() net.Addr {
@@ -132,7 +80,7 @@ func (this *ChannelHandlerContext) SetHandler(handler ChannelHandler) {
 }
 
 func (this *ChannelHandlerContext) SetProtocols(protocols []ChannelProtocol) {
-	var curWarp *ChannekProtocolWarp
+	var curWarp *ChannelProtocolWarp
 	for _, protocol := range protocols {
 		warp := newChannelProtocolWarp(protocol)
 		if this.headProtocol == nil {
@@ -142,8 +90,11 @@ func (this *ChannelHandlerContext) SetProtocols(protocols []ChannelProtocol) {
 		}
 		warp.prve = curWarp
 		curWarp = warp
+		warp.bridge(this)
 	}
 	this.tailProtocol = curWarp
+	//TODO 这里需要处理
+
 }
 
 func (this *ChannelHandlerContext) handle() {
@@ -189,6 +140,7 @@ func (this *ChannelHandlerContext) Close() {
 		}
 		logger.Debugf("关闭了连接,%s", this.conn.RemoteAddr().String())
 		this.handler.ChannelClose(this)
+		this.headProtocol.Destroy()
 		go func(this *ChannelHandlerContext) {
 			defer func() {
 				if err := recover(); err != nil {
@@ -229,21 +181,8 @@ func (this *ChannelHandlerContext) Write(data interface{}) {
 }
 
 func (this *ChannelHandlerContext) write(data []byte) {
-	this.lock.Lock()
-	defer this.lock.Unlock()
 	_, err := this.conn.Write(data)
 	if err != nil {
 		this.fireException(err)
 	}
-}
-
-type defaultChannelProtocol struct {
-}
-
-func (this *defaultChannelProtocol) Encode(context *ChannelHandlerContext, warp *ChannekProtocolWarp, data interface{}) {
-	warp.FireNextWrite(context, data)
-}
-func (this *defaultChannelProtocol) Decode(context *ChannelHandlerContext, warp *ChannekProtocolWarp, data interface{}) {
-	logger.Debug("调用默认Decode")
-	warp.FireNextRead(context, data)
 }

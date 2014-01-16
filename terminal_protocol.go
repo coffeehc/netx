@@ -15,10 +15,10 @@ func NewTerminalProtocol() *TerminalProtocol {
 	return p
 }
 
-func (this *TerminalProtocol) Encode(context *ChannelHandlerContext, warp *ChannekProtocolWarp, data interface{}) {
+func (this *TerminalProtocol) Encode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
 	warp.FireNextWrite(context, data)
 }
-func (this *TerminalProtocol) Decode(context *ChannelHandlerContext, warp *ChannekProtocolWarp, data interface{}) {
+func (this *TerminalProtocol) Decode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
 	if v, ok := data.([]byte); ok {
 		for _, d := range v {
 			if d == '\n' {

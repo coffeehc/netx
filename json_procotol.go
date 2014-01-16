@@ -21,7 +21,7 @@ func NewJsonProtocol(interfFunc func() interface{}) *JsonProtocol {
 	return p
 }
 
-func (this *JsonProtocol) Encode(context *ChannelHandlerContext, warp *ChannekProtocolWarp, data interface{}) {
+func (this *JsonProtocol) Encode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
 	b, err := json.Marshal(data)
 	if err != nil {
 		logger.Errorf("Json序列化错误:%s", err)
@@ -30,7 +30,7 @@ func (this *JsonProtocol) Encode(context *ChannelHandlerContext, warp *ChannekPr
 	warp.FireNextWrite(context, b)
 }
 
-func (this *JsonProtocol) Decode(context *ChannelHandlerContext, warp *ChannekProtocolWarp, data interface{}) {
+func (this *JsonProtocol) Decode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
 	if v, ok := data.([]byte); ok {
 		obj := this.interf()
 		err := json.Unmarshal(v, obj)

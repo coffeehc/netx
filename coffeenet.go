@@ -6,10 +6,22 @@ import (
 )
 
 type BootStrap struct {
-	host                         string //127.0.0.1:8888
+	host                         string
 	netType                      string
 	channelHandlerContextFactory *ChannelHandlerContextFactory
 	open                         bool
+	workConcurrent               int
+	workPool                     chan int
+}
+
+func (this *BootStrap) initWorkPool() {
+	if this.workConcurrent < 0 {
+		panic("工作并发不能小于0")
+	}
+	if this.workConcurrent == 0 {
+		this.workConcurrent = 1
+	}
+	this.workPool = make(chan int, this.workConcurrent)
 }
 
 type ChannelHandlerContextFactory struct {
@@ -29,9 +41,9 @@ func NewChannelHandlerContextFactory(initContextFunc func(context *ChannelHandle
 	return this
 }
 
-func (this *ChannelHandlerContextFactory) CreatChannelHandlerContext(conn net.Conn) *ChannelHandlerContext {
+func (this *ChannelHandlerContextFactory) CreatChannelHandlerContext(conn net.Conn, workPool chan int) *ChannelHandlerContext {
 	this.idSeed++
-	channelHandlerContext := NewChannelHandlerContext(this.idSeed, conn)
+	channelHandlerContext := NewChannelHandlerContext(this.idSeed, conn, workPool)
 	this.initContextFunc(channelHandlerContext)
 	if channelHandlerContext.headProtocol == nil {
 		p := newChannelProtocolWarp(new(defaultChannelProtocol))
