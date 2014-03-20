@@ -58,13 +58,13 @@ func (this *ChannelProtocolWarp) FireNextRead(context *ChannelHandlerContext, da
 				defer func() {
 					<-context.workPool
 					if err := recover(); err != nil {
-						logger.Errorf("处理数据时出现了补课回复的异常:%s", err)
+						logger.Errorf("处理数据时出现了不可恢复的异常:%s", err)
 					}
 				}()
 				context.handler.ChannelRead(context, data)
 			}(context)
 		case <-time.After(time.Second * 3):
-			logger.Warn("工作堵塞,丢弃读取的数据")
+			logger.Warn("进程池无可用进程,丢弃读取的数据")
 		}
 
 	}
