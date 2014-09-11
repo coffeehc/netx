@@ -2,8 +2,9 @@
 package coffeenet
 
 import (
+	"logger"
+
 	"code.google.com/p/snappy-go/snappy"
-	"github.com/coffeehc/logger"
 )
 
 type SnappyProtocol struct {
@@ -17,7 +18,7 @@ func (this *SnappyProtocol) Encode(context *ChannelHandlerContext, warp *Channel
 		var err error
 		data, err = snappy.Encode(nil, v)
 		if err != nil {
-			logger.Warnf("snappy压缩出错:%s", err)
+			logger.Warn("snappy压缩出错:%s", err)
 			return
 		}
 	}
@@ -28,7 +29,7 @@ func (this *SnappyProtocol) Decode(context *ChannelHandlerContext, warp *Channel
 		var err error
 		data, err = snappy.Decode(nil, v)
 		if err != nil {
-			logger.Warnf("snappy压缩出错:%s", err)
+			logger.Warn("snappy压缩出错:%s", err)
 			return
 		}
 	}

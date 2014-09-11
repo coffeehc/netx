@@ -2,7 +2,7 @@ package coffeenet
 
 import (
 	"encoding/json"
-	"github.com/coffeehc/logger"
+	"logger"
 )
 
 type JsonProtocol struct {
@@ -24,7 +24,7 @@ func NewJsonProtocol(interfFunc func() interface{}) *JsonProtocol {
 func (this *JsonProtocol) Encode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
 	b, err := json.Marshal(data)
 	if err != nil {
-		logger.Errorf("Json序列化错误:%s", err)
+		logger.Error("Json序列化错误:%s", err)
 		return
 	}
 	warp.FireNextWrite(context, b)
@@ -35,7 +35,7 @@ func (this *JsonProtocol) Decode(context *ChannelHandlerContext, warp *ChannelPr
 		obj := this.interf()
 		err := json.Unmarshal(v, obj)
 		if err != nil {
-			logger.Errorf("Json反序列化失败:%s", err)
+			logger.Error("Json反序列化失败:%s", err)
 			return
 		}
 		warp.FireNextRead(context, obj)

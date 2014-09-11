@@ -4,7 +4,7 @@ package coffeenet
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/coffeehc/logger"
+	"logger"
 )
 
 type LengthFieldProtocol struct {
@@ -32,21 +32,21 @@ func (this *LengthFieldProtocol) Encode(context *ChannelHandlerContext, warp *Ch
 	if v, ok := data.([]byte); ok {
 		length := len(v)
 		if length <= 0 {
-			logger.Errorf("本次发送数据为空,忽略本次数据发送")
+			logger.Error("本次发送数据为空,忽略本次数据发送")
 			return
 		}
 		var sendData []byte
 		switch this.lengthFieldLength {
 		case 1:
 			if length >= 256 {
-				logger.Errorf("发送的数据大于255,丢弃本次数据发送")
+				logger.Error("发送的数据大于255,丢弃本次数据发送")
 				return
 			}
 			sendData = []byte{byte(length)}
 			break
 		case 2:
 			if length >= 65536 {
-				logger.Errorf("发送的数据大于65536,丢弃本次数据发送")
+				logger.Error("发送的数据大于65536,丢弃本次数据发送")
 				return
 			}
 			sendData = make([]byte, 2)
@@ -61,7 +61,7 @@ func (this *LengthFieldProtocol) Encode(context *ChannelHandlerContext, warp *Ch
 			binary.BigEndian.PutUint64(sendData, uint64(length))
 			break
 		default:
-			logger.Errorf("设置了一个错误的字段长度,%d,丢弃本次数据", this.lengthFieldLength)
+			logger.Error("设置了一个错误的字段长度,%d,丢弃本次数据", this.lengthFieldLength)
 			return
 		}
 		sendData = append(sendData, v...)
@@ -87,7 +87,7 @@ func (this *LengthFieldProtocol) Decode(context *ChannelHandlerContext, warp *Ch
 			if lengthSize > 0 { //不可能有出现0的情况
 				this.buf.Write(v[:lengthSize])
 			} else {
-				logger.Debugf("出现了不可能的情况:lengthSize=%d", lengthSize)
+				logger.Debug("出现了不可能的情况:lengthSize=%d", lengthSize)
 			}
 			switch this.lengthFieldLength {
 			case 1:
@@ -118,7 +118,7 @@ func (this *LengthFieldProtocol) Decode(context *ChannelHandlerContext, warp *Ch
 			this.Decode(context, warp, v[lastLength:])
 		}
 	} else {
-		logger.Debugf("不能失败")
+		logger.Debug("不能失败")
 		warp.FireNextRead(context, data)
 	}
 }

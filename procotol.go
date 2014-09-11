@@ -3,18 +3,13 @@ package coffeenet
 
 import (
 	"fmt"
+	"logger"
 	"time"
-
-	"github.com/coffeehc/logger"
 )
 
 type ChannelProtocol interface {
 	Encode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{})
 	Decode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{})
-}
-
-type ChannelProtocolWarpBridge interface {
-	SetSelfWarp(context *ChannelHandlerContext, warp *ChannelProtocolWarp)
 }
 
 type ChannelProtocolDestroy interface {
@@ -31,12 +26,6 @@ func newChannelProtocolWarp(protocol ChannelProtocol) *ChannelProtocolWarp {
 	warp := new(ChannelProtocolWarp)
 	warp.protocol = protocol
 	return warp
-}
-
-func (this *ChannelProtocolWarp) bridge(context *ChannelHandlerContext) {
-	if v, ok := this.protocol.(ChannelProtocolWarpBridge); ok {
-		v.SetSelfWarp(context, this)
-	}
 }
 
 func (this *ChannelProtocolWarp) read(context *ChannelHandlerContext, data interface{}) {
@@ -58,7 +47,8 @@ func (this *ChannelProtocolWarp) FireNextRead(context *ChannelHandlerContext, da
 				defer func() {
 					<-context.workPool
 					if err := recover(); err != nil {
-						logger.Errorf("处理数据时出现了不可恢复的异常:%s", err)
+						logger.Error("处理数据时出现了不可恢复的异常:%s", err)
+						context.Close()
 					}
 				}()
 				context.handler.ChannelRead(context, data)
@@ -106,6 +96,5 @@ func (this *defaultChannelProtocol) Encode(context *ChannelHandlerContext, warp 
 	warp.FireNextWrite(context, data)
 }
 func (this *defaultChannelProtocol) Decode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
-	logger.Debug("调用默认Decode")
 	warp.FireNextRead(context, data)
 }

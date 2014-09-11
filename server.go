@@ -3,48 +3,74 @@ package coffeenet
 
 import (
 	"fmt"
+	"logger"
 	"net"
-
-	"github.com/coffeehc/logger"
 )
+
+type ServerFD interface {
+	Close() error
+}
 
 type Server struct {
 	BootStrap
-	listener net.Listener
-	group    map[int]*ChannelHandlerContext
+	host                         string
+	netType                      string
+	fd                           ServerFD
+	channelHandlerContextFactory *ChannelHandlerContextFactory
 }
 
 func NewServer(host string, netType string, workPoolSize int) *Server {
 	server := new(Server)
 	server.host = host
 	server.netType = netType
-	server.group = make(map[int]*ChannelHandlerContext)
+	server.group = make(map[int32]*ChannelHandlerContext)
 	server.workConcurrent = workPoolSize
-	server.initWorkPool()
+	server.init()
 	return server
 }
 
-func (this *Server) Bind() error {
+func (this *Server) Bind(setting func(conn net.Conn)) error {
+	logger.Debug("bind%s", this.host)
 	if this.open {
 		return fmt.Errorf("Server已经启动")
 	}
-	leistener, err := net.Listen(this.netType, this.host)
+	switch this.netType {
+	case "tcp", "tcp4", "tcp6":
+		return this.serveTCP(setting)
+	default:
+		panic("暂不支持TCP以外的协议")
+	}
+	return nil
+
+}
+
+func (this *Server) serveTCP(setting func(conn net.Conn)) error {
+	addr, err := net.ResolveTCPAddr(this.netType, this.host)
+	if err != nil {
+		logger.Error("转换TCP地址出现错误:%s", err)
+		return err
+	}
+	listener, err := net.ListenTCP(this.netType, addr)
 	if err != nil {
 		return fmt.Errorf("bind出现错误:%s", err)
 	}
 	this.open = true
-	this.listener = leistener
-	logger.Infof("已经bind:[%s]%s", this.netType, leistener.Addr())
+	this.fd = listener
+	logger.Info("已经bind:[%s]%s", this.netType, listener.Addr())
 	go func(this *Server) {
-		listen := new(closeListen)
-		listen.server = this
 		for {
-			conn, err := this.listener.Accept()
+			conn, err := listener.AcceptTCP()
 			if err != nil {
-				logger.Warnf("Accept出现错误:%s", err)
+				if opErr, ok := err.(*net.OpError); ok && (opErr.Timeout() || opErr.Temporary()) {
+					continue
+				}
+				logger.Warn("Accept出现错误:%s", err)
 			} else {
+				if setting != nil {
+					setting(conn)
+				}
+				logger.Debug("已经建立连接:%s->%s", conn.LocalAddr(), conn.RemoteAddr())
 				channelHandlerContext := this.channelHandlerContextFactory.CreatChannelHandlerContext(conn, this.workPool)
-				channelHandlerContext.AddListen(listen)
 				//TODO 此处可以限制连接数
 				go channelHandlerContext.handle()
 			}
@@ -53,18 +79,7 @@ func (this *Server) Bind() error {
 	return nil
 }
 
-func (this *Server) Close() {
-	for _, v := range this.group {
-		v.Close()
-	}
-}
-
-type closeListen struct {
-	SimpleChannelListen
-	server *Server
-}
-
-func (this *closeListen) OnClose(context *ChannelHandlerContext) {
-	delete(this.server.group, context.id)
-	context.listens = nil
+func (this *Server) SetChannelHandlerContextFactory(factory *ChannelHandlerContextFactory) {
+	this.channelHandlerContextFactory = factory
+	this.channelHandlerContextFactory.bootStrap = &this.BootStrap
 }

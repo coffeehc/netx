@@ -3,18 +3,23 @@ package coffeenet
 
 import (
 	"net"
+	"sync/atomic"
 )
 
 type BootStrap struct {
-	host                         string
-	netType                      string
-	channelHandlerContextFactory *ChannelHandlerContextFactory
-	open                         bool
-	workConcurrent               int
-	workPool                     chan int
+	idSeed         int32
+	group          map[int32]*ChannelHandlerContext
+	open           bool
+	workConcurrent int
+	workPool       chan int
+	listen         *closeListen
 }
 
-func (this *BootStrap) initWorkPool() {
+func (this *BootStrap) GetSeed() int32 {
+	return atomic.AddInt32(&this.idSeed, 1)
+}
+
+func (this *BootStrap) init() {
 	if this.workConcurrent < 0 {
 		panic("工作并发不能小于0")
 	}
@@ -22,33 +27,52 @@ func (this *BootStrap) initWorkPool() {
 		this.workConcurrent = 1
 	}
 	this.workPool = make(chan int, this.workConcurrent)
+	this.listen = new(closeListen)
+	this.idSeed = 0
 }
 
 type ChannelHandlerContextFactory struct {
-	idSeed          int
-	group           map[int]ChannelHandlerContext
 	initContextFunc func(content *ChannelHandlerContext)
+	bootStrap       *BootStrap
 }
 
-func (this *BootStrap) SetChannelHandlerContextFactory(factory *ChannelHandlerContextFactory) {
-	this.channelHandlerContextFactory = factory
+func (this *BootStrap) Close() {
+	if this.group != nil {
+		for _, v := range this.group {
+			v.Close()
+		}
+	}
+}
+
+type closeListen struct {
+	SimpleChannelListen
+	server *Server
+}
+
+func (this *closeListen) OnActive(context *ChannelHandlerContext) {
+	this.server.group[context.id] = context
+}
+
+func (this *closeListen) OnClose(context *ChannelHandlerContext) {
+	delete(this.server.group, context.id)
+	context.listens = nil
 }
 
 func NewChannelHandlerContextFactory(initContextFunc func(context *ChannelHandlerContext)) *ChannelHandlerContextFactory {
 	this := new(ChannelHandlerContextFactory)
-	this.group = make(map[int]ChannelHandlerContext)
 	this.initContextFunc = initContextFunc
 	return this
 }
 
 func (this *ChannelHandlerContextFactory) CreatChannelHandlerContext(conn net.Conn, workPool chan int) *ChannelHandlerContext {
-	this.idSeed++
-	channelHandlerContext := NewChannelHandlerContext(this.idSeed, conn, workPool)
+	seed := this.bootStrap.GetSeed()
+	channelHandlerContext := NewChannelHandlerContext(seed, conn, workPool)
 	this.initContextFunc(channelHandlerContext)
 	if channelHandlerContext.headProtocol == nil {
 		p := newChannelProtocolWarp(new(defaultChannelProtocol))
 		channelHandlerContext.headProtocol = p
 		channelHandlerContext.tailProtocol = p
 	}
+	this.bootStrap.group[seed] = channelHandlerContext
 	return channelHandlerContext
 }

@@ -2,7 +2,7 @@ package coffeenet
 
 import (
 	"fmt"
-	"github.com/coffeehc/logger"
+	"logger"
 	"testing"
 	"time"
 )
