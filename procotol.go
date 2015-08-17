@@ -3,8 +3,9 @@ package coffeenet
 
 import (
 	"fmt"
-	"logger"
 	"time"
+
+	"github.com/coffeehc/logger"
 )
 
 type ChannelProtocol interface {

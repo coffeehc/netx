@@ -2,7 +2,6 @@ package coffeenet
 
 import (
 	"fmt"
-	"logger"
 	"testing"
 	"time"
 )
@@ -12,7 +11,7 @@ type testHandler struct {
 }
 
 func (this *testHandler) Active(context *ChannelHandlerContext) {
-	logger.Debugf("已经激活了一个连接")
+	logger.Debug("已经激活了一个连接")
 	//context.Write([]byte("欢迎您的到来\n"))
 }
 func (this *testHandler) Exception(context *ChannelHandlerContext, err error) {

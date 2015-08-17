@@ -2,9 +2,10 @@ package coffeenet
 
 import (
 	"fmt"
-	"logger"
 	"net"
 	"time"
+
+	"github.com/coffeehc/logger"
 )
 
 type Client struct {

@@ -3,8 +3,9 @@ package coffeenet
 
 import (
 	"fmt"
-	"logger"
 	"net"
+
+	"github.com/coffeehc/logger"
 )
 
 type ServerFD interface {
@@ -19,7 +20,7 @@ type Server struct {
 	channelHandlerContextFactory *ChannelHandlerContextFactory
 }
 
-func NewServer(host string, netType string, workPoolSize int) *Server {
+func NewServer(netType string, host string, workPoolSize int) *Server {
 	server := new(Server)
 	server.host = host
 	server.netType = netType
@@ -30,18 +31,22 @@ func NewServer(host string, netType string, workPoolSize int) *Server {
 }
 
 func (this *Server) Bind(setting func(conn net.Conn)) error {
-	logger.Debug("bind%s", this.host)
-	if this.open {
-		return fmt.Errorf("Server已经启动")
-	}
-	switch this.netType {
-	case "tcp", "tcp4", "tcp6":
-		return this.serveTCP(setting)
-	default:
-		panic("暂不支持TCP以外的协议")
-	}
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Error("bind出现错误:%s", err)
+			return
+		}
+	}()
+	this.open.Do(func() {
+		logger.Info("bind%s", this.host)
+		switch this.netType {
+		case "tcp", "tcp4", "tcp6":
+			this.serveTCP(setting)
+		default:
+			panic("暂不支持TCP以外的协议")
+		}
+	})
 	return nil
-
 }
 
 func (this *Server) serveTCP(setting func(conn net.Conn)) error {
@@ -54,7 +59,6 @@ func (this *Server) serveTCP(setting func(conn net.Conn)) error {
 	if err != nil {
 		return fmt.Errorf("bind出现错误:%s", err)
 	}
-	this.open = true
 	this.fd = listener
 	logger.Info("已经bind:[%s]%s", this.netType, listener.Addr())
 	go func(this *Server) {

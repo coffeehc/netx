@@ -2,7 +2,8 @@ package coffeenet
 
 import (
 	"encoding/json"
-	"logger"
+
+	"github.com/coffeehc/logger"
 )
 
 type JsonProtocol struct {

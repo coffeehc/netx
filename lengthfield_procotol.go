@@ -4,7 +4,8 @@ package coffeenet
 import (
 	"bytes"
 	"encoding/binary"
-	"logger"
+
+	"github.com/coffeehc/logger"
 )
 
 type LengthFieldProtocol struct {

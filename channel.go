@@ -4,10 +4,11 @@ package coffeenet
 import (
 	"fmt"
 	"io"
-	"logger"
 	"net"
 	"sync/atomic"
 	"time"
+
+	"github.com/coffeehc/logger"
 )
 
 const (
@@ -43,9 +44,9 @@ type ChannelHandler interface {
 }
 
 type ChannelHandlerContext struct {
-	id           int32
-	conn         net.Conn
-	handler      ChannelHandler
+	id           int32          //channel id
+	conn         net.Conn       // socket connection
+	handler      ChannelHandler //biz Handler
 	headProtocol *ChannelProtocolWarp
 	tailProtocol *ChannelProtocolWarp
 	isOpen       bool

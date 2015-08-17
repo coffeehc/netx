@@ -3,13 +3,14 @@ package coffeenet
 
 import (
 	"net"
+	"sync"
 	"sync/atomic"
 )
 
 type BootStrap struct {
 	idSeed         int32
 	group          map[int32]*ChannelHandlerContext
-	open           bool
+	open           *sync.Once
 	workConcurrent int
 	workPool       chan int
 	listen         *closeListen
@@ -19,6 +20,7 @@ func (this *BootStrap) GetSeed() int32 {
 	return atomic.AddInt32(&this.idSeed, 1)
 }
 
+//初始化Bootstrap
 func (this *BootStrap) init() {
 	if this.workConcurrent < 0 {
 		panic("工作并发不能小于0")
@@ -26,6 +28,7 @@ func (this *BootStrap) init() {
 	if this.workConcurrent == 0 {
 		this.workConcurrent = 1
 	}
+	this.open = new(sync.Once)
 	this.workPool = make(chan int, this.workConcurrent)
 	this.listen = new(closeListen)
 	this.idSeed = 0
