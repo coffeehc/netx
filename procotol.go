@@ -52,7 +52,9 @@ func (this *ChannelProtocolWarp) FireNextRead(context *ChannelHandlerContext, da
 						context.Close()
 					}
 				}()
+				t1 := time.Now()
 				context.handler.ChannelRead(context, data)
+				context.handlerStat.AcceptData(time.Since(t1))
 			}(context)
 		case <-time.After(time.Second * 3):
 			logger.Warn("进程池无可用进程,丢弃读取的数据")

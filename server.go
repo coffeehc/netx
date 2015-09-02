@@ -20,6 +20,14 @@ type Server struct {
 	channelHandlerContextFactory *ChannelHandlerContextFactory
 }
 
+func (this *Server) GetHanderStat() HanderStat {
+	return this.channelHandlerContextFactory.GetHanderStat()
+}
+
+func (this *Server) GetWorkRuntine() int {
+	return len(this.workPool)
+}
+
 func NewServer(netType string, host string, workPoolSize int) *Server {
 	server := new(Server)
 	server.host = host

@@ -55,13 +55,14 @@ type ChannelHandlerContext struct {
 	workPool     chan int
 	writing      int32
 	attr         map[string]interface{}
+	handlerStat  *HanderStat
 }
 
 func (this *ChannelHandlerContext) GetId() int32 {
 	return this.id
 }
 
-func NewChannelHandlerContext(id int32, conn net.Conn, workPool chan int) *ChannelHandlerContext {
+func NewChannelHandlerContext(id int32, conn net.Conn, workPool chan int, handlerStat *HanderStat) *ChannelHandlerContext {
 	channelHandlerContext := new(ChannelHandlerContext)
 	channelHandlerContext.id = id
 	channelHandlerContext.conn = conn
@@ -70,6 +71,7 @@ func NewChannelHandlerContext(id int32, conn net.Conn, workPool chan int) *Chann
 	channelHandlerContext.workPool = workPool
 	channelHandlerContext.writing = 0
 	channelHandlerContext.attr = make(map[string]interface{})
+	channelHandlerContext.handlerStat = handlerStat
 	return channelHandlerContext
 }
 

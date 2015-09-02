@@ -37,6 +37,11 @@ func (this *BootStrap) init() {
 type ChannelHandlerContextFactory struct {
 	initContextFunc func(content *ChannelHandlerContext)
 	bootStrap       *BootStrap
+	handerStat      *HanderStat
+}
+
+func (this *ChannelHandlerContextFactory) GetHanderStat() HanderStat {
+	return *this.handerStat
 }
 
 func (this *BootStrap) Close() {
@@ -64,12 +69,14 @@ func (this *closeListen) OnClose(context *ChannelHandlerContext) {
 func NewChannelHandlerContextFactory(initContextFunc func(context *ChannelHandlerContext)) *ChannelHandlerContextFactory {
 	this := new(ChannelHandlerContextFactory)
 	this.initContextFunc = initContextFunc
+	this.handerStat = NewHanderStat()
+	this.handerStat.StartHanderStat()
 	return this
 }
 
 func (this *ChannelHandlerContextFactory) CreatChannelHandlerContext(conn net.Conn, workPool chan int) *ChannelHandlerContext {
 	seed := this.bootStrap.GetSeed()
-	channelHandlerContext := NewChannelHandlerContext(seed, conn, workPool)
+	channelHandlerContext := NewChannelHandlerContext(seed, conn, workPool, this.handerStat)
 	this.initContextFunc(channelHandlerContext)
 	if channelHandlerContext.headProtocol == nil {
 		p := newChannelProtocolWarp(new(defaultChannelProtocol))
