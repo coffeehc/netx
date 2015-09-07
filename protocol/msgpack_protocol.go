@@ -1,18 +1,18 @@
-// msgpack_procotol
-package coffeenet
+package protocol
 
 import (
+	"github.com/coffeehc/coffeenet"
 	"github.com/coffeehc/logger"
 	"github.com/ugorji/go/codec"
 )
 
-type MsgpackProcotol struct {
+type Msgpack_Protocol struct {
 	hander *codec.MsgpackHandle
 	interf func() interface{}
 }
 
-func NewMsgpackProcotol(interfFunc func() interface{}) *MsgpackProcotol {
-	p := &MsgpackProcotol{hander: new(codec.MsgpackHandle)}
+func NewMsgpackProcotol(interfFunc func() interface{}) *Msgpack_Protocol {
+	p := &Msgpack_Protocol{hander: new(codec.MsgpackHandle)}
 	p.interf = interfFunc
 	if p.interf == nil {
 		p.interf = func() interface{} {
@@ -23,7 +23,7 @@ func NewMsgpackProcotol(interfFunc func() interface{}) *MsgpackProcotol {
 	return p
 }
 
-func (this *MsgpackProcotol) Encode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
+func (this *Msgpack_Protocol) Encode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
 	var b []byte
 	encode := codec.NewEncoderBytes(&b, this.hander)
 	err := encode.Encode(data)
@@ -31,10 +31,10 @@ func (this *MsgpackProcotol) Encode(context *ChannelHandlerContext, warp *Channe
 		logger.Error("Msgpack序列化错误:%s", err)
 		return
 	}
-	warp.FireNextWrite(context, b)
+	warp.FireNextEncode(context, b)
 }
 
-func (this *MsgpackProcotol) Decode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
+func (this *Msgpack_Protocol) Decode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
 	if v, ok := data.([]byte); ok {
 		obj := this.interf()
 		decode := codec.NewDecoderBytes(v, this.hander)
@@ -43,9 +43,9 @@ func (this *MsgpackProcotol) Decode(context *ChannelHandlerContext, warp *Channe
 			logger.Error("Msgpack反序列化失败:%s", err)
 			return
 		}
-		warp.FireNextRead(context, obj)
+		data = obj
 	} else {
-		warp.FireNextRead(context, data)
+		warp.FireNextDecode(context, data)
 	}
 
 }

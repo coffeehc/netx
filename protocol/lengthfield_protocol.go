@@ -1,35 +1,35 @@
-// frame_procotol
-package coffeenet
+package protocol
 
 import (
 	"bytes"
 	"encoding/binary"
 
+	"github.com/coffeehc/coffeenet"
 	"github.com/coffeehc/logger"
 )
 
-type LengthFieldProtocol struct {
+type LengthField_Protocol struct {
 	lengthFieldLength int
 	buf               *bytes.Buffer
 	length            int64
 }
 
-func NewLengthFieldProtocol(lengthFieldLength int) *LengthFieldProtocol {
+func NewLengthFieldProtocol(lengthFieldLength int) *LengthField_Protocol {
 	if lengthFieldLength != 1 && lengthFieldLength != 2 && lengthFieldLength != 4 && lengthFieldLength != 8 {
 		panic("设置的字段长度必须是1,2,4,8,否则协议无法生效")
 	}
-	p := new(LengthFieldProtocol)
+	p := new(LengthField_Protocol)
 	p.lengthFieldLength = lengthFieldLength
 	p.buf = bytes.NewBuffer(nil)
 	return p
 }
 
-func (this *LengthFieldProtocol) reset() {
+func (this *LengthField_Protocol) reset() {
 	this.length = 0
 	this.buf.Reset()
 }
 
-func (this *LengthFieldProtocol) Encode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
+func (this *LengthField_Protocol) Encode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
 	if v, ok := data.([]byte); ok {
 		length := len(v)
 		if length <= 0 {
@@ -66,13 +66,12 @@ func (this *LengthFieldProtocol) Encode(context *ChannelHandlerContext, warp *Ch
 			return
 		}
 		sendData = append(sendData, v...)
-		warp.FireNextWrite(context, sendData)
-	} else {
-		warp.FireNextWrite(context, data)
+		data = sendData
 	}
+	warp.FireNextEncode(context, data)
 }
 
-func (this *LengthFieldProtocol) Decode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
+func (this *LengthField_Protocol) Decode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
 	if v, ok := data.([]byte); ok {
 		if len(v) == 0 {
 			logger.Warn("读取的数据为空")
@@ -113,13 +112,13 @@ func (this *LengthFieldProtocol) Decode(context *ChannelHandlerContext, warp *Ch
 		this.buf.Write(v[:lastLength])
 		result := make([]byte, this.length)
 		copy(result, this.buf.Bytes())
-		warp.FireNextRead(context, result)
+		warp.FireNextDecode(context, result)
 		this.reset()
 		if dataLength > lastLength {
 			this.Decode(context, warp, v[lastLength:])
 		}
 	} else {
 		logger.Debug("不能失败")
-		warp.FireNextRead(context, data)
+		warp.FireNextDecode(context, data)
 	}
 }

@@ -4,37 +4,37 @@ import (
 	"fmt"
 	"net"
 	"time"
-
-	"github.com/coffeehc/logger"
 )
 
 type Client struct {
-	BootStrap
+	host      string
+	netType   string
+	context   *Context
+	bootstrap Bootstrap
 }
 
-func NewClient(workPoolSize int) *Client {
-	client := new(Client)
-	client.group = make(map[int32]*ChannelHandlerContext)
-	client.workConcurrent = workPoolSize
-	client.init()
-	return client
+//获取该客户端的上下文
+func (this *Client) GetContext() *Context {
+	return this.context
 }
 
-func (this *Client) Connect(netType, host string, contextFactory *ChannelHandlerContextFactory, timeout time.Duration, connSetting func(conn net.Conn)) error {
+//使用指定的方式连接指定的地址
+func (this *Client) Connect(timeout time.Duration) error {
 	var d net.Dialer
 	if timeout != 0 {
 		d = net.Dialer{Timeout: timeout}
 	}
-	conn, err := d.Dial(netType, host)
+	conn, err := d.Dial(this.netType, this.host)
 	if err != nil {
 		return fmt.Errorf("connect出现错误:%s", err)
 	}
-	if connSetting != nil {
-		connSetting(conn)
+	this.context, err = this.bootstrap.Connection(conn)
+	return nil
+}
+
+func (this *Client) Close() error {
+	if this.context != nil {
+		return this.context.Close()
 	}
-	logger.Info("已经connect:[%s]%s->%s", netType, conn.LocalAddr(), conn.RemoteAddr())
-	contextFactory.bootStrap = &this.BootStrap
-	channelHandlerContext := contextFactory.CreatChannelHandlerContext(conn, this.workPool)
-	go channelHandlerContext.handle()
 	return nil
 }

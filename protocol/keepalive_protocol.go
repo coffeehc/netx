@@ -1,12 +1,14 @@
 // keepalive_procotol
-package coffeenet
+package protocol
 
 import (
 	"bytes"
 	"time"
+
+	"github.com/coffeehc/coffeenet"
 )
 
-type KeepAliveProcotol struct {
+type KeepAlive_Protocol struct {
 	readTimeOut  time.Duration
 	writeTimeOut time.Duration
 	readChan     chan bool
@@ -16,18 +18,18 @@ type KeepAliveProcotol struct {
 
 var KEEP_ALIVE_MSG = []byte{0XFE, 0xFF, 'k', 'e', 'e', 'p', 'a', 'l', 'i', 'v', 'e'}
 
-func NewKeepAliveProcotol(readTimeOut, writeTimeOut time.Duration) *KeepAliveProcotol {
-	keeper := &KeepAliveProcotol{readTimeOut: readTimeOut, writeTimeOut: writeTimeOut}
+func NewKeepAliveProtocol(readTimeOut, writeTimeOut time.Duration) *KeepAlive_Protocol {
+	keeper := &KeepAlive_Protocol{readTimeOut: readTimeOut, writeTimeOut: writeTimeOut}
 	keeper.readChan = make(chan bool)
 	keeper.writeChan = make(chan bool)
 	return keeper
 }
 
-func (this *KeepAliveProcotol) Encode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
+func (this *KeepAlive_Protocol) Encode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
 	this.readChan <- true
-	warp.FireNextWrite(context, data)
+	warp.FireNextEncode(context, data)
 }
-func (this *KeepAliveProcotol) Decode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
+func (this *KeepAlive_Protocol) Decode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
 	this.readChan <- true
 	if v, ok := data.([]byte); ok {
 		i := bytes.Index(v, KEEP_ALIVE_MSG)
@@ -40,21 +42,21 @@ func (this *KeepAliveProcotol) Decode(context *ChannelHandlerContext, warp *Chan
 			return
 		}
 	}
-	warp.FireNextRead(context, data)
+	warp.FireNextDecode(context, data)
 }
-func (this *KeepAliveProcotol) Destrop() {
+func (this *KeepAlive_Protocol) Destrop() {
 	this.isDestroy = true
 	close(this.readChan)
 	close(this.writeChan)
 }
 
-func (this *KeepAliveProcotol) SetSelfWarp(context *ChannelHandlerContext, warp ChannelProtocolWarp) {
+func (this *KeepAlive_Protocol) SetSelfWarp(context *coffeenet.Context, warp *coffeenet.ProtocolWarp) {
 	if this.readTimeOut != 0 {
 		go func() {
 			for !this.isDestroy {
 				select {
 				case <-time.After(this.readTimeOut):
-					warp.FireNextWrite(context, KEEP_ALIVE_MSG)
+					warp.FireNextEncode(context, KEEP_ALIVE_MSG)
 				case <-this.readChan:
 				}
 			}
@@ -65,7 +67,7 @@ func (this *KeepAliveProcotol) SetSelfWarp(context *ChannelHandlerContext, warp 
 			for !this.isDestroy {
 				select {
 				case <-time.After(this.writeTimeOut):
-					warp.FireNextWrite(context, KEEP_ALIVE_MSG)
+					warp.FireNextEncode(context, KEEP_ALIVE_MSG)
 				case <-this.writeChan:
 				}
 			}

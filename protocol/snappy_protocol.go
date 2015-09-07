@@ -1,15 +1,15 @@
-// snappy_procotol
-package coffeenet
+package protocol
 
 import (
+	"github.com/coffeehc/coffeenet"
 	"github.com/coffeehc/logger"
 	"github.com/golang/snappy"
 )
 
-type SnappyProtocol struct {
+type Snappy_Protocol struct {
 }
 
-func (this *SnappyProtocol) Encode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
+func (this *Snappy_Protocol) Encode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
 	if v, ok := data.(string); ok {
 		data = []byte(v)
 	}
@@ -20,9 +20,9 @@ func (this *SnappyProtocol) Encode(context *ChannelHandlerContext, warp *Channel
 			return
 		}
 	}
-	warp.FireNextWrite(context, data)
+	warp.FireNextEncode(context, data)
 }
-func (this *SnappyProtocol) Decode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
+func (this *Snappy_Protocol) Decode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
 	if v, ok := data.([]byte); ok {
 		var err error
 		data, err = snappy.Decode(nil, v)
@@ -31,5 +31,5 @@ func (this *SnappyProtocol) Decode(context *ChannelHandlerContext, warp *Channel
 			return
 		}
 	}
-	warp.FireNextRead(context, data)
+	warp.FireNextDecode(context, data)
 }

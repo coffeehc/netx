@@ -1,8 +1,9 @@
-package coffeenet
+package protocol
 
 import (
 	"encoding/json"
 
+	"github.com/coffeehc/coffeenet"
 	"github.com/coffeehc/logger"
 )
 
@@ -22,16 +23,16 @@ func NewJsonProtocol(interfFunc func() interface{}) *JsonProtocol {
 	return p
 }
 
-func (this *JsonProtocol) Encode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
+func (this *JsonProtocol) Encode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
 	b, err := json.Marshal(data)
 	if err != nil {
 		logger.Error("Json序列化错误:%s", err)
 		return
 	}
-	warp.FireNextWrite(context, b)
+	warp.FireNextEncode(context, b)
 }
 
-func (this *JsonProtocol) Decode(context *ChannelHandlerContext, warp *ChannelProtocolWarp, data interface{}) {
+func (this *JsonProtocol) Decode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
 	if v, ok := data.([]byte); ok {
 		obj := this.interf()
 		err := json.Unmarshal(v, obj)
@@ -39,9 +40,8 @@ func (this *JsonProtocol) Decode(context *ChannelHandlerContext, warp *ChannelPr
 			logger.Error("Json反序列化失败:%s", err)
 			return
 		}
-		warp.FireNextRead(context, obj)
-	} else {
-		warp.FireNextRead(context, data)
+		data = obj
 	}
+	warp.FireNextDecode(context, data)
 
 }

@@ -41,6 +41,6 @@ func (this *HanderStat) StartHanderStat() {
 	}()
 }
 
-func (this *HanderStat) AcceptData(size time.Duration) {
+func (this *HanderStat) acceptData(size time.Duration) {
 	this.queue <- size
 }
