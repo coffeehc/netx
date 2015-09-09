@@ -32,6 +32,8 @@ func (this *testHandler) Close(context *Context) {
 
 func TestServer(t *testing.T) {
 	contextFactory := NewContextFactory(func(context *Context) {
+		//设置
+		context.SetProtocols([]Protocol{new(defaultProtocol)})
 		context.SetHandler(new(testHandler))
 	})
 	bootstrap := NewBootStrap(new(Config), contextFactory, nil)

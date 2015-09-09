@@ -10,10 +10,13 @@ import (
 
 //启动接口
 type Bootstrap interface {
-	//但连接创立的时候需要被调用
+	//创建一个新的Server
 	NewServer(netType, host string) *Server
+	//创建一个信的Client
 	NewClient(netType, host string) *Client
+	//当连接创立的时候需要被调用
 	Connection(conn net.Conn) (*Context, error)
+	//关闭多有的链接
 	Close() error
 }
 
@@ -24,7 +27,7 @@ type _bootStrap struct {
 	connectionSetting func(conn net.Conn)
 	//上下文工厂
 	contextFactory *ContextFactory
-
+	//统计信息
 	handlerStat *HanderStat
 }
 
