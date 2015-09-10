@@ -16,18 +16,18 @@
                           -----------
                                |
                           -----------
-                         | protocols |    
+                         | protocols |
                           -----------
                                |
                            ---------
-                          | handler | 
-                           --------- 
+                          | handler |
+                           ---------
 ```
 
 ## Bootstrap
 
  > 接口定义
- 
+
  ```go
     type Bootstrap interface {
 	   //创建一个新的Server
@@ -38,11 +38,13 @@
 	   Connection(conn net.Conn) (*Context, error)
 	   //关闭多有的链接
 	   Close() error
+	   //获取统计接口信息
+	   GetStatInfo() StatInfo
     }
  ```
- 
+
  > 创建Bootstrap
- 
+
 ```go
 func NewBootStrap(config *Config, contextFactory *ContextFactory, connectionSetting func(conn net.Conn)) Bootstrap
 ```
@@ -80,7 +82,7 @@ func NewContextFactory(initContextFunc func(context *Context)) *ContextFactory
 调用``Bootstrap.NewServer()``来创建,==目前仅支持TCP==
 
 >Server的启动
-    
+
 调用Server.Bind()来启动监听.如果想要监听多个端口,请创建多了Server,可以共用一个Bootstrap来管理链接
 
 >创建Client

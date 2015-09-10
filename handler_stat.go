@@ -3,6 +3,12 @@ package coffeenet
 
 import "time"
 
+//统计接口
+type StatInfo interface {
+	GetHanderStat() HanderStat
+	GetWorkRuntine() int
+}
+
 type HanderStat struct {
 	HandlerCount_avg int64
 	HandlerCount     int64

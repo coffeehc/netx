@@ -18,6 +18,8 @@ type Bootstrap interface {
 	Connection(conn net.Conn) (*Context, error)
 	//关闭多有的链接
 	Close() error
+	//获取统计接口信息
+	GetStatInfo() StatInfo
 }
 
 type _bootStrap struct {
@@ -29,6 +31,18 @@ type _bootStrap struct {
 	contextFactory *ContextFactory
 	//统计信息
 	handlerStat *HanderStat
+}
+
+func (this *_bootStrap) GetStatInfo() StatInfo {
+	return this
+}
+
+func (this *_bootStrap) GetHanderStat() HanderStat {
+	return *this.handlerStat
+}
+
+func (this *_bootStrap) GetWorkRuntine() int {
+	return len(this.contextFactory.workPool)
 }
 
 //初始化Bootstrap
