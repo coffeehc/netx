@@ -1,5 +1,5 @@
 # coffeenet --简单的一个Net框架
-[![wercker status](https://app.wercker.com/status/c5da574ba26ed967e6ab67ac15034c45/m "wercker status")](https://app.wercker.com/project/bykey/c5da574ba26ed967e6ab67ac15034c45)
+[![GoDoc](https://godoc.org/github.com/go-martini/martini?status.png)](http://godoc.org/github.com/coffeehc/coffeenet)
 
 ## 2.0.0 架构
 一个全新版本,将代码进行了大的整理,每个功能都单独定义到具体的go源文件中,并且重新定义了接口以及架构
