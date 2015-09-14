@@ -1,8 +1,6 @@
 // config
 package coffeenet
 
-import "github.com/coffeehc/logger"
-
 type Config struct {
 	//最大连接数
 	MaxConnection int
@@ -21,7 +19,6 @@ var (
 //校验配置是否合法,并自动修复错误值
 func (this *Config) checkConfig() {
 	if this.MaxConnection <= 0 {
-		logger.Warn("")
 		this.MaxConnection = default_config_maxConnecton
 	}
 	if this.MaxConcurrentHandler <= 0 {

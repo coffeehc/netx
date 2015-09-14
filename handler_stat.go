@@ -18,7 +18,7 @@ type HanderStat struct {
 }
 
 func NewHanderStat() *HanderStat {
-	return &HanderStat{0, 0, 0, 10000000, make(chan time.Duration)}
+	return &HanderStat{0, 0, 0, time.Hour, make(chan time.Duration, 10000)}
 }
 func (this *HanderStat) StartHanderStat() {
 	go func() {

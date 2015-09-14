@@ -29,7 +29,7 @@ func (this *Client) Connect(timeout time.Duration) error {
 		return fmt.Errorf("connect出现错误:%s", err)
 	}
 	this.context, err = this.bootstrap.Connection(conn)
-	return nil
+	return err
 }
 
 func (this *Client) Close() error {

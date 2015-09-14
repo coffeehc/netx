@@ -3,6 +3,8 @@ package coffeenet
 
 import (
 	"fmt"
+
+	"github.com/coffeehc/logger"
 )
 
 type Protocol interface {
@@ -36,6 +38,7 @@ func (this *ProtocolWarp) decode(context *Context, data interface{}) {
 //调用下一个协议读取数据
 func (this *ProtocolWarp) FireNextDecode(context *Context, data interface{}) {
 	if data == nil {
+		logger.Warn("Data is nil")
 		return
 	}
 	warp := this.next

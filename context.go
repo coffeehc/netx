@@ -110,12 +110,11 @@ func (this *Context) SetProtocols(protocols []Protocol) {
 }
 
 //开始处理上下文
-func (this *Context) process(wait chan<- bool) {
+func (this *Context) process() {
 	this.isOpen = true
-	wait <- this.isOpen
 	defer func() {
 		if err := recover(); err != nil {
-			logger.Debug("处理数据出现了异常:%s", err)
+			logger.Error("处理数据出现了异常:%s", err)
 		}
 	}()
 	this.handler.Active(this)
@@ -129,30 +128,32 @@ func (this *Context) process(wait chan<- bool) {
 			l.OnActive(this)
 		}
 	}(this)
-	//TODO 此处要优化,最好使用buf池
-	bytes := make([]byte, 1500)
-	//TODO 加入读取或者写入超时的限制
-	for this.isOpen {
-		i, err := this.conn.Read(bytes)
-		if err != nil {
-			if err == io.EOF {
-				this.Close()
+	go func() {
+		//TODO 此处要优化,最好使用buf池
+		bytes := make([]byte, 1500)
+		//TODO 加入读取或者写入超时的限制
+		for this.isOpen {
+			i, err := this.conn.Read(bytes)
+			if err != nil {
+				if err == io.EOF {
+					this.Close()
+					continue
+				}
+				if opErr, ok := err.(*net.OpError); ok {
+					if !opErr.Timeout() && !opErr.Temporary() {
+						logger.Error("接收到不可恢复的异常,关闭连接,%s", err)
+						this.Close()
+					}
+				} else {
+					this.fireException(fmt.Errorf("接收内容异常,%#v", err))
+				}
 				continue
 			}
-			if opErr, ok := err.(*net.OpError); ok {
-				if !opErr.Timeout() && !opErr.Temporary() {
-					logger.Error("接收到不可恢复的异常,关闭连接,%s", err)
-					this.Close()
-				}
-			} else {
-				this.fireException(fmt.Errorf("接收内容异常,%#v", err))
+			if i > 0 {
+				this.headProtocol.decode(this, bytes[:i])
 			}
-			continue
 		}
-		if i > 0 {
-			this.headProtocol.decode(this, bytes[:i])
-		}
-	}
+	}()
 }
 
 /*

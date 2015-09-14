@@ -44,8 +44,6 @@ func (this *Msgpack_Protocol) Decode(context *coffeenet.Context, warp *coffeenet
 			return
 		}
 		data = obj
-	} else {
-		warp.FireNextDecode(context, data)
 	}
-
+	warp.FireNextDecode(context, data)
 }

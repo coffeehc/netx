@@ -72,11 +72,10 @@ func (this *_bootStrap) Connection(conn net.Conn) (*Context, error) {
 		this.connectionSetting(conn)
 	}
 	context := this.contextFactory.creatContext(conn)
-	wait := make(chan bool)
-	go context.process(wait)
-	<-wait
+	context.process()
 	return context, nil
 }
+
 func (this *_bootStrap) Close() error {
 	this.contextFactory.Close()
 	return nil

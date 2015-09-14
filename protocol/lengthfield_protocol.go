@@ -33,7 +33,7 @@ func (this *LengthField_Protocol) Encode(context *coffeenet.Context, warp *coffe
 	if v, ok := data.([]byte); ok {
 		length := len(v)
 		if length <= 0 {
-			logger.Error("本次发送数据为空,忽略本次数据发送")
+			logger.Warn("本次发送数据为空,忽略本次数据发送")
 			return
 		}
 		var sendData []byte

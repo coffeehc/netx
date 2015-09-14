@@ -16,7 +16,7 @@ func (this *Snappy_Protocol) Encode(context *coffeenet.Context, warp *coffeenet.
 	if v, ok := data.([]byte); ok {
 		data = snappy.Encode(nil, v)
 		if data == nil {
-			logger.Warn("snappy压缩出错:%s")
+			logger.Warn("snappy编码出错:%s")
 			return
 		}
 	}
@@ -27,7 +27,7 @@ func (this *Snappy_Protocol) Decode(context *coffeenet.Context, warp *coffeenet.
 		var err error
 		data, err = snappy.Decode(nil, v)
 		if err != nil {
-			logger.Warn("snappy压缩出错:%s", err)
+			logger.Warn("snappy解码出错:%s", err)
 			return
 		}
 	}
