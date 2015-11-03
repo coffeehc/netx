@@ -1,0 +1,24 @@
+syntax = "proto2";
+package signal;
+
+message Signal {
+	//信令值,uint32
+	required uint32 signal = 1;
+	//序列号
+	required int64 sequence = 2;
+	//版本号
+	optional uint32 version = 3 [default=1];
+	//信令头扩展
+	repeated Header headers = 4;
+	//信令内容
+	optional bytes data = 5;
+}
+
+message Header {
+	//头定义
+	required string key = 1;
+	//值
+	required string value = 2;
+}
+
+
