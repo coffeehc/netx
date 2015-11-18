@@ -5,7 +5,7 @@ message Signal {
 	//信令值,uint32
 	required uint32 signal = 1;
 	//序列号
-	required int64 sequence = 2;
+	optional int64 sequence = 2;
 	//版本号
 	optional uint32 version = 3 [default=1];
 	//信令头扩展

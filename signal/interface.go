@@ -1,7 +1,10 @@
 // interface
 package signal
 
-import "github.com/coffeehc/coffeenet"
+import (
+	"github.com/coffeehc/coffeenet"
+	"net"
+)
 
 //信令处理接口
 type SignalHandler interface {
@@ -9,5 +12,13 @@ type SignalHandler interface {
 	Handle(context *coffeenet.Context, signal *Signal)
 }
 
-//信令路由
-type RegeditSignal func(signalCode uint32, handler SignalHandler) error
+type SignalEngine interface {
+	RegeditSignal(signalCode uint32, handler SignalHandler) error
+	Connection(addr *net.TCPAddr) error
+	Bind(addr *net.TCPAddr) (*coffeenet.Server, error)
+	Close()
+}
+
+func NewSimpleSignal(signal uint32, data []byte) *Signal {
+	return &Signal{Signal: &signal, Data: data}
+}

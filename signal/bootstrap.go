@@ -9,29 +9,46 @@ import (
 	"github.com/coffeehc/coffeenet"
 	"github.com/coffeehc/coffeenet/protocol"
 	"github.com/golang/protobuf/proto"
+	"time"
 )
 
-func NewSignalBootstrap(netSetting func(conn net.Conn)) (coffeenet.Bootstrap, RegeditSignal) {
-	factroy := &initFactory{make(map[uint32]SignalHandler, 0), new(sync.Mutex)}
-	contextFactory := coffeenet.NewContextFactory(factroy.initContextFactory)
-	return coffeenet.NewBootStrap(nil, contextFactory, netSetting), factroy.regeditHandler
+func NewSignalBootstrap(netSetting func(conn net.Conn), compressProtocol coffeenet.Protocol, listens map[string]coffeenet.ContextListen) SignalEngine {
+	factroy := new(initFactory)
+	bootstrap := coffeenet.NewBootStrap(nil, coffeenet.NewContextFactory(factroy.initContextFactory), netSetting)
+	factroy.signals = make(map[uint32]SignalHandler, 0)
+	factroy.mutex = new(sync.Mutex)
+	factroy.bootstrap = bootstrap
+	factroy.listens = listens
+	if factroy.listens == nil {
+		factroy.listens = make(map[string]coffeenet.ContextListen)
+	}
+	return factroy
 
 }
 
 type initFactory struct {
-	signals map[uint32]SignalHandler
-	mutex   *sync.Mutex
+	compressProtocol coffeenet.Protocol
+	signals          map[uint32]SignalHandler
+	mutex            *sync.Mutex
+	bootstrap        coffeenet.Bootstrap
+	listens          map[string]coffeenet.ContextListen
 }
 
 func (this *initFactory) initContextFactory(context *coffeenet.Context) {
+	for name, listen := range this.listens {
+		context.AddListen(name, listen)
+	}
 	protocols := []coffeenet.Protocol{protocol.NewLengthFieldProtocol(4)}
+	if this.compressProtocol != nil {
+		protocols = append(protocols, this.compressProtocol)
+	}
 	protocols = append(protocols, protocol.NewProtoBufProcotol(func() proto.Message { return new(Signal) }))
 	context.SetProtocols(protocols)
-	context.SetHandler(&netHandler{this})
+	context.SetHandler(&netHandler{factory: this, remortAddr: context.RemortAddr()})
 }
 
 //注册Handler
-func (this *initFactory) regeditHandler(signalCode uint32, handler SignalHandler) error {
+func (this *initFactory) RegeditSignal(signalCode uint32, handler SignalHandler) error {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 	if _, ok := this.signals[signalCode]; ok {
@@ -44,4 +61,20 @@ func (this *initFactory) regeditHandler(signalCode uint32, handler SignalHandler
 //获取Handler
 func (this *initFactory) getHandler(signalCode uint32) SignalHandler {
 	return this.signals[signalCode]
+}
+
+func (this *initFactory) Connection(addr *net.TCPAddr) error {
+	client := this.bootstrap.NewClient(addr.Network(), addr.String())
+	return client.Connect(5 * time.Second)
+}
+func (this *initFactory) Bind(addr *net.TCPAddr) (*coffeenet.Server, error) {
+	server := this.bootstrap.NewServer(addr.Network(), addr.String())
+	if err := server.Bind(); err != nil {
+		return nil, err
+	}
+	return server, nil
+}
+
+func (this *initFactory) Close() {
+	this.bootstrap.Close()
 }

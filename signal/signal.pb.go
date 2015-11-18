@@ -15,8 +15,8 @@ It has these top-level messages:
 package signal
 
 import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import "fmt"
+import "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -27,7 +27,7 @@ type Signal struct {
 	// 信令值,uint32
 	Signal *uint32 `protobuf:"varint,1,req,name=signal" json:"signal,omitempty"`
 	// 序列号
-	Sequence *int64 `protobuf:"varint,2,req,name=sequence" json:"sequence,omitempty"`
+	Sequence *int64 `protobuf:"varint,2,opt,name=sequence" json:"sequence,omitempty"`
 	// 版本号
 	Version *uint32 `protobuf:"varint,3,opt,name=version,def=1" json:"version,omitempty"`
 	// 信令头扩展
@@ -102,4 +102,9 @@ func (m *Header) GetValue() string {
 		return *m.Value
 	}
 	return ""
+}
+
+func init() {
+	proto.RegisterType((*Signal)(nil), "signal.Signal")
+	proto.RegisterType((*Header)(nil), "signal.Header")
 }

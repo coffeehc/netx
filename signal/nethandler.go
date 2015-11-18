@@ -2,17 +2,18 @@
 package signal
 
 import (
-	"net"
-
 	"github.com/coffeehc/coffeenet"
 	"github.com/coffeehc/logger"
+	"net"
 )
 
 type netHandler struct {
-	factory *initFactory
+	factory    *initFactory
+	remortAddr net.Addr
 }
 
-func (this *netHandler) Active(context *coffeenet.Context) {}
+func (this *netHandler) Active(context *coffeenet.Context) {
+}
 func (this *netHandler) Exception(context *coffeenet.Context, err error) {
 	if opErr, ok := err.(*net.OpError); ok {
 		logger.Error("出现网络异常:%s", opErr)
@@ -34,4 +35,5 @@ func (this *netHandler) Read(context *coffeenet.Context, data interface{}) {
 	logger.Error("处理的对象并非Signal类型:[%T]%#v", data, data)
 
 }
-func (this *netHandler) Close(context *coffeenet.Context) {}
+func (this *netHandler) Close(context *coffeenet.Context) {
+}

@@ -10,7 +10,7 @@ type Client struct {
 	host      string
 	netType   string
 	context   *Context
-	bootstrap Bootstrap
+	bootstrap *_bootstrap
 }
 
 //获取该客户端的上下文
@@ -28,7 +28,7 @@ func (this *Client) Connect(timeout time.Duration) error {
 	if err != nil {
 		return fmt.Errorf("connect出现错误:%s", err)
 	}
-	this.context, err = this.bootstrap.Connection(conn)
+	this.context, err = this.bootstrap.connection(conn)
 	return err
 }
 

@@ -14,15 +14,13 @@ type Bootstrap interface {
 	NewServer(netType, host string) *Server
 	//创建一个信的Client
 	NewClient(netType, host string) *Client
-	//当连接创立的时候需要被调用
-	Connection(conn net.Conn) (*Context, error)
 	//关闭多有的链接
 	Close() error
 	//获取统计接口信息
 	GetStatInfo() StatInfo
 }
 
-type _bootStrap struct {
+type _bootstrap struct {
 	//配置信息
 	config *Config
 	//设置连接参数
@@ -33,15 +31,15 @@ type _bootStrap struct {
 	handlerStat *HanderStat
 }
 
-func (this *_bootStrap) GetStatInfo() StatInfo {
+func (this *_bootstrap) GetStatInfo() StatInfo {
 	return this
 }
 
-func (this *_bootStrap) GetHanderStat() HanderStat {
+func (this *_bootstrap) GetHanderStat() HanderStat {
 	return *this.handlerStat
 }
 
-func (this *_bootStrap) GetWorkRuntine() int {
+func (this *_bootstrap) GetWorkRuntine() int {
 	return len(this.contextFactory.workPool)
 }
 
@@ -56,11 +54,11 @@ func NewBootStrap(config *Config, contextFactory *ContextFactory, connectionSett
 	contextFactory.handlerStat = handlerStat
 	contextFactory.orderHandler = config.OrderHandler
 	contextFactory.workPool = make(chan int64, config.MaxConcurrentHandler)
-	return &_bootStrap{config, connectionSetting, contextFactory, handlerStat}
+	return &_bootstrap{config, connectionSetting, contextFactory, handlerStat}
 }
 
 //建立连接时处理连接参数并且创建上下文
-func (this *_bootStrap) Connection(conn net.Conn) (*Context, error) {
+func (this *_bootstrap) connection(conn net.Conn) (*Context, error) {
 	//控制连接数
 	if len(this.contextFactory.group) > this.config.MaxConnection {
 		conn.Close()
@@ -76,14 +74,14 @@ func (this *_bootStrap) Connection(conn net.Conn) (*Context, error) {
 	return context, nil
 }
 
-func (this *_bootStrap) Close() error {
+func (this *_bootstrap) Close() error {
 	this.contextFactory.Close()
 	return nil
 }
 
-func (this *_bootStrap) NewServer(netType, host string) *Server {
+func (this *_bootstrap) NewServer(netType, host string) *Server {
 	return &Server{host, netType, this, nil}
 }
-func (this *_bootStrap) NewClient(netType, host string) *Client {
+func (this *_bootstrap) NewClient(netType, host string) *Client {
 	return &Client{host, netType, nil, this}
 }

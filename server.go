@@ -16,8 +16,12 @@ type Closer interface {
 type Server struct {
 	host      string
 	netType   string
-	bootstrap Bootstrap
+	bootstrap *_bootstrap
 	closer    Closer
+}
+
+func (this *Server) GetBootstrap() Bootstrap {
+	return this.bootstrap
 }
 
 func (this *Server) Bind() (err error) {
@@ -61,7 +65,7 @@ func (this *Server) serveTCP() error {
 					}
 				}
 			} else {
-				this.bootstrap.Connection(conn)
+				this.bootstrap.connection(conn)
 			}
 		}
 	}(this)
