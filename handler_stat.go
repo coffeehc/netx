@@ -1,7 +1,10 @@
 // stat_procotol
 package coffeenet
 
-import "time"
+import (
+	"time"
+	"sync/atomic"
+)
 
 //统计接口
 type StatInfo interface {
@@ -11,21 +14,21 @@ type StatInfo interface {
 
 type HanderStat struct {
 	HandlerCount_avg int64
-	HandlerCount     int64
+	HandlerCount     *int64
 	ProcessTime_Max  time.Duration
 	ProcessTime_Min  time.Duration
 	queue            chan time.Duration
 }
 
 func NewHanderStat() *HanderStat {
-	return &HanderStat{0, 0, 0, time.Hour, make(chan time.Duration, 10000)}
+	var handlerCount = int64(0)
+	return &HanderStat{0,&handlerCount, 0, time.Hour, make(chan time.Duration, 10000)}
 }
 func (this *HanderStat) StartHanderStat() {
 	go func() {
 		for {
 			select {
 			case delay := <-this.queue:
-				this.HandlerCount += 1
 				if this.ProcessTime_Max < delay {
 					this.ProcessTime_Max = delay
 				}
@@ -36,17 +39,19 @@ func (this *HanderStat) StartHanderStat() {
 		}
 	}()
 	go func() {
-		count := this.HandlerCount
+		count := atomic.LoadInt64(this.HandlerCount)
 		for {
 			select {
 			case <-time.After(time.Second):
-				this.HandlerCount_avg = this.HandlerCount - count
-				count = this.HandlerCount
+				newCount := atomic.LoadInt64(this.HandlerCount)
+				this.HandlerCount_avg = newCount - count
+				count = newCount
 			}
 		}
 	}()
 }
 
 func (this *HanderStat) acceptData(size time.Duration) {
+	atomic.AddInt64(this.HandlerCount,1)
 	this.queue <- size
 }
