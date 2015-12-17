@@ -14,6 +14,7 @@ type SignalHandler interface {
 
 type SignalEngine interface {
 	RegeditSignal(signalCode uint32, handler SignalHandler) error
+	AddListen(name string,listen coffeenet.ContextListen)
 	Connection(addr *net.TCPAddr) error
 	Bind(addr *net.TCPAddr) (*coffeenet.Server, error)
 	Close()

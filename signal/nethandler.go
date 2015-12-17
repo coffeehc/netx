@@ -29,7 +29,7 @@ func (this *netHandler) Read(context *coffeenet.Context, data interface{}) {
 			handler.Handle(context, signal)
 			return
 		}
-		logger.Error("信令[%x]没有对应的处理类")
+		logger.Error("信令[0x%X]没有对应的处理类",signal.GetSignal())
 		return
 	}
 	logger.Error("处理的对象并非Signal类型:[%T]%#v", data, data)
