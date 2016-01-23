@@ -2,8 +2,8 @@
 package coffeenet
 
 import (
-	"time"
 	"sync/atomic"
+	"time"
 )
 
 //统计接口
@@ -22,7 +22,7 @@ type HanderStat struct {
 
 func NewHanderStat() *HanderStat {
 	var handlerCount = int64(0)
-	return &HanderStat{0,&handlerCount, 0, time.Hour, make(chan time.Duration, 10000)}
+	return &HanderStat{0, &handlerCount, 0, time.Hour, make(chan time.Duration, 10000)}
 }
 func (this *HanderStat) StartHanderStat() {
 	go func() {
@@ -40,18 +40,21 @@ func (this *HanderStat) StartHanderStat() {
 	}()
 	go func() {
 		count := atomic.LoadInt64(this.HandlerCount)
+		timer := time.NewTimer(0)
 		for {
+			timer.Reset(time.Second)
 			select {
-			case <-time.After(time.Second):
+			case <-timer.C:
 				newCount := atomic.LoadInt64(this.HandlerCount)
 				this.HandlerCount_avg = newCount - count
 				count = newCount
 			}
 		}
+		timer.Stop()
 	}()
 }
 
 func (this *HanderStat) acceptData(size time.Duration) {
-	atomic.AddInt64(this.HandlerCount,1)
+	atomic.AddInt64(this.HandlerCount, 1)
 	this.queue <- size
 }

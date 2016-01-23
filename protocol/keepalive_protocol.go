@@ -53,24 +53,30 @@ func (this *KeepAlive_Protocol) Destrop() {
 func (this *KeepAlive_Protocol) SetSelfWarp(context *coffeenet.Context, warp *coffeenet.ProtocolWarp) {
 	if this.readTimeOut != 0 {
 		go func() {
+			timer := time.NewTimer(0)
 			for !this.isDestroy {
+				timer.Reset(this.readTimeOut)
 				select {
-				case <-time.After(this.readTimeOut):
+				case <-timer.C:
 					warp.FireNextEncode(context, KEEP_ALIVE_MSG)
 				case <-this.readChan:
 				}
 			}
+			timer.Stop()
 		}()
 	}
 	if this.writeTimeOut != 0 {
 		go func() {
+			timer := time.NewTimer(0)
 			for !this.isDestroy {
+				timer.Reset(this.writeTimeOut)
 				select {
-				case <-time.After(this.writeTimeOut):
+				case <-timer.C:
 					warp.FireNextEncode(context, KEEP_ALIVE_MSG)
 				case <-this.writeChan:
 				}
 			}
+			timer.Stop()
 		}()
 	}
 }
