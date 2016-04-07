@@ -24,7 +24,7 @@ type Context struct {
 	writing      int32 //关闭的时候用于标记剩余多少数据没有写完
 	attr         map[string]interface{}
 	orderHandler bool
-	handlerStat  *HanderStat
+	handlerStat  *HandlerStat
 }
 
 //获取上下文对应的ID
@@ -193,7 +193,7 @@ func (this *Context) Write(data interface{}) {
 //关闭上下文,包括关闭连接等
 func (this *Context) Close() error {
 	if this.isOpen {
-		logger.Debug("开始关闭连接")
+		logger.Info("开始关闭连接")
 		this.isOpen = false
 		if this.writing != 0 {
 			for i := 0; i <= 1000; i++ {
@@ -208,7 +208,7 @@ func (this *Context) Close() error {
 			this.fireException(err)
 			return err
 		}
-		logger.Debug("关闭了连接,%s", this.conn.RemoteAddr().String())
+		logger.Info("关闭了连接,%s", this.conn.RemoteAddr().String())
 		this.handler.Close(this)
 		this.headProtocol.Destroy()
 		go func(this *Context) {

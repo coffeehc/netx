@@ -18,7 +18,7 @@ type ContextFactory struct {
 	workPool chan int64
 	//是否顺序处理消息,默认false,即可以并发处理消息
 	orderHandler bool
-	handlerStat  *HanderStat
+	handlerStat  *HandlerStat
 }
 
 //初始化一个ContextFactory

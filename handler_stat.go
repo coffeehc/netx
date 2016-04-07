@@ -8,11 +8,11 @@ import (
 
 //统计接口
 type StatInfo interface {
-	GetHanderStat() HanderStat
-	GetWorkRuntine() int
+	GetHandlerStat() HandlerStat
+	GetWorkRoutine() int
 }
 
-type HanderStat struct {
+type HandlerStat struct {
 	HandlerCount_avg int64
 	HandlerCount     *int64
 	ProcessTime_Max  time.Duration
@@ -20,11 +20,11 @@ type HanderStat struct {
 	queue            chan time.Duration
 }
 
-func NewHanderStat() *HanderStat {
+func NewHandlerStat() *HandlerStat {
 	var handlerCount = int64(0)
-	return &HanderStat{0, &handlerCount, 0, time.Hour, make(chan time.Duration, 10000)}
+	return &HandlerStat{0, &handlerCount, 0, time.Hour, make(chan time.Duration, 10000)}
 }
-func (this *HanderStat) StartHanderStat() {
+func (this *HandlerStat) StartHandlerStat() {
 	go func() {
 		for {
 			select {
@@ -54,7 +54,7 @@ func (this *HanderStat) StartHanderStat() {
 	}()
 }
 
-func (this *HanderStat) acceptData(size time.Duration) {
+func (this *HandlerStat) acceptData(size time.Duration) {
 	atomic.AddInt64(this.HandlerCount, 1)
 	this.queue <- size
 }

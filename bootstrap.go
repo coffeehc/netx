@@ -28,14 +28,14 @@ type _bootstrap struct {
 	//上下文工厂
 	contextFactory *ContextFactory
 	//统计信息
-	handlerStat *HanderStat
+	handlerStat *HandlerStat
 }
 
 func (this *_bootstrap) GetStatInfo() StatInfo {
 	return this
 }
 
-func (this *_bootstrap) GetHanderStat() HanderStat {
+func (this *_bootstrap) GetHanderStat() HandlerStat {
 	return *this.handlerStat
 }
 
@@ -49,8 +49,8 @@ func NewBootStrap(config *Config, contextFactory *ContextFactory, connectionSett
 		config = default_config
 	}
 	config.checkConfig()
-	handlerStat := NewHanderStat()
-	handlerStat.StartHanderStat()
+	handlerStat := NewHandlerStat()
+	handlerStat.StartHandlerStat()
 	contextFactory.handlerStat = handlerStat
 	contextFactory.orderHandler = config.OrderHandler
 	contextFactory.workPool = make(chan int64, config.MaxConcurrentHandler)
