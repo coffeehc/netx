@@ -8,13 +8,12 @@ import (
 
 	"github.com/coffeehc/coffeenet"
 	"github.com/coffeehc/coffeenet/protocol"
-	"github.com/golang/protobuf/proto"
 	"github.com/coffeehc/logger"
+	"github.com/golang/protobuf/proto"
 	"time"
 )
 
-
-func NewSignalBootstrap(config *coffeenet.Config,netSetting func(conn net.Conn), compressProtocol coffeenet.Protocol, listens map[string]coffeenet.ContextListen) SignalEngine {
+func NewSignalBootstrap(config *coffeenet.Config, netSetting func(conn net.Conn), compressProtocol coffeenet.Protocol, listens map[string]coffeenet.ContextListen) SignalEngine {
 	factroy := new(initFactory)
 	bootstrap := coffeenet.NewBootStrap(config, coffeenet.NewContextFactory(factroy.initContextFactory), netSetting)
 	factroy.signals = make(map[uint32]SignalHandler, 0)
@@ -36,9 +35,13 @@ type initFactory struct {
 	listens          map[string]coffeenet.ContextListen
 }
 
-func (this *initFactory)AddListen(name string,listen coffeenet.ContextListen){
-	if _,ok := this.listens[name];ok{
-		logger.Error("listen[%s]已经注册,不能再次注册",name)
+func (this *initFactory) GetBootStrap() coffeenet.Bootstrap {
+	return this.bootstrap
+}
+
+func (this *initFactory) AddListen(name string, listen coffeenet.ContextListen) {
+	if _, ok := this.listens[name]; ok {
+		logger.Error("listen[%s]已经注册,不能再次注册", name)
 		return
 	}
 	this.listens[name] = listen
@@ -62,10 +65,10 @@ func (this *initFactory) RegeditSignal(signalCode uint32, handler SignalHandler)
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 	if _, ok := this.signals[signalCode]; ok {
-		return fmt.Errorf("code[0x%X]对应的处理接口已经存在.",signalCode)
+		return fmt.Errorf("code[0x%X]对应的处理接口已经存在.", signalCode)
 	}
 	this.signals[signalCode] = handler
-	logger.Debug("注册 Code[0x%X]=>%#T",signalCode,handler)
+	logger.Debug("注册 Code[0x%X]=>%#T", signalCode, handler)
 	return nil
 }
 

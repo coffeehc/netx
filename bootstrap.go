@@ -35,11 +35,11 @@ func (this *_bootstrap) GetStatInfo() StatInfo {
 	return this
 }
 
-func (this *_bootstrap) GetHanderStat() HandlerStat {
+func (this *_bootstrap) GetHandlerStat() HandlerStat {
 	return *this.handlerStat
 }
 
-func (this *_bootstrap) GetWorkRuntine() int {
+func (this *_bootstrap) GetWorkRoutine() int {
 	return len(this.contextFactory.workPool)
 }
 

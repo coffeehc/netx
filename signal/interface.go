@@ -13,11 +13,12 @@ type SignalHandler interface {
 }
 
 type SignalEngine interface {
-	RegeditSignal(signalCode uint32, handler SignalHandler) error
-	AddListen(name string,listen coffeenet.ContextListen)
+	RegisterSignal(signalCode uint32, handler SignalHandler) error
+	AddListen(name string, listen coffeenet.ContextListen)
 	Connection(addr *net.TCPAddr) error
 	Bind(addr *net.TCPAddr) (*coffeenet.Server, error)
 	Close()
+	GetBootStrap() coffeenet.Bootstrap
 }
 
 func NewSimpleSignal(signal uint32, data []byte) *Signal {
