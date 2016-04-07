@@ -61,7 +61,7 @@ func (this *initFactory) initContextFactory(context *coffeenet.Context) {
 }
 
 //注册Handler
-func (this *initFactory) RegeditSignal(signalCode uint32, handler SignalHandler) error {
+func (this *initFactory) RegisterSignal(signalCode uint32, handler SignalHandler) error {
 	this.mutex.Lock()
 	defer this.mutex.Unlock()
 	if _, ok := this.signals[signalCode]; ok {

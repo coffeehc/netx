@@ -64,7 +64,7 @@ func (this *_bootstrap) connection(conn net.Conn) (*Context, error) {
 		conn.Close()
 		return nil, errors.New(logger.Warn("已经超出最大连接数,拒绝连接"))
 	}
-	logger.Debug("成功创建连接%s->%s", conn.LocalAddr(), conn.RemoteAddr())
+	logger.Info("成功创建连接%s->%s", conn.LocalAddr(), conn.RemoteAddr())
 	//设置连接参数
 	if this.connectionSetting != nil {
 		this.connectionSetting(conn)
