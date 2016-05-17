@@ -13,11 +13,11 @@ type StatInfo interface {
 }
 
 type HandlerStat struct {
-	HandlerCount_avg int64
-	HandlerCount     *int64
-	ProcessTime_Max  time.Duration
-	ProcessTime_Min  time.Duration
-	queue            chan time.Duration
+	HandlerCount_avg int64              `json:"handlerCount_avg"`
+	HandlerCount     *int64             `json:"handlerCount"`
+	ProcessTime_Max  time.Duration      `json:"processTime_Max"`
+	ProcessTime_Min  time.Duration      `json:"processTime_Min"`
+	queue            chan time.Duration `json:"-"`
 }
 
 func NewHandlerStat() *HandlerStat {
