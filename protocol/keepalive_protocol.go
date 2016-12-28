@@ -1,82 +1,98 @@
-// keepalive_procotol
 package protocol
 
 import (
 	"bytes"
+	"context"
 	"time"
 
-	"github.com/coffeehc/coffeenet"
+	"github.com/coffeehc/netx"
 )
 
-type KeepAlive_Protocol struct {
+type keepAliveProtocol struct {
 	readTimeOut  time.Duration
 	writeTimeOut time.Duration
 	readChan     chan bool
 	writeChan    chan bool
 	isDestroy    bool
+	msg          []byte
 }
 
-var KEEP_ALIVE_MSG = []byte{0XFE, 0xFF, 'k', 'e', 'e', 'p', 'a', 'l', 'i', 'v', 'e'}
+var defaultKeepAliveMsg = []byte{0XFE, 0xFF, 'k', 'e', 'e', 'p', 'a', 'l', 'i', 'v', 'e'}
 
-func NewKeepAliveProtocol(readTimeOut, writeTimeOut time.Duration) *KeepAlive_Protocol {
-	keeper := &KeepAlive_Protocol{readTimeOut: readTimeOut, writeTimeOut: writeTimeOut}
-	keeper.readChan = make(chan bool)
-	keeper.writeChan = make(chan bool)
+//NewKeepAliveProtocol cteate a KeepAlive Protocol implement
+func NewKeepAliveProtocol(readTimeOut, writeTimeOut time.Duration, msg []byte) netx.Protocol {
+	keeper := &keepAliveProtocol{
+		readTimeOut:  readTimeOut,
+		writeTimeOut: writeTimeOut,
+		readChan:     make(chan bool),
+		writeChan:    make(chan bool),
+	}
+	if msg == nil || len(msg) == 0 {
+		msg = defaultKeepAliveMsg
+	}
+	keeper.msg = msg
+
+	//TODO schedule task
 	return keeper
 }
 
-func (this *KeepAlive_Protocol) Encode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
-	this.readChan <- true
-	warp.FireNextEncode(context, data)
+func (kp *keepAliveProtocol) Encode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
+	kp.readChan <- true
+	chain.Process(cxt, connContext, data)
 }
-func (this *KeepAlive_Protocol) Decode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
-	this.readChan <- true
+func (kp *keepAliveProtocol) Decode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
+	kp.readChan <- true
 	if v, ok := data.([]byte); ok {
-		i := bytes.Index(v, KEEP_ALIVE_MSG)
+		i := bytes.Index(v, kp.msg)
 		if i >= 0 {
 			if i == 0 {
-				this.Decode(context, warp, v[len(KEEP_ALIVE_MSG):])
+				kp.Decode(cxt, connContext, chain, v[len(kp.msg):])
 			} else {
-				this.Decode(context, warp, append(v[:i], v[i+len(KEEP_ALIVE_MSG):]...))
+				kp.Decode(cxt, connContext, chain, append(v[:i], v[i+len(kp.msg):]...))
 			}
 			return
 		}
 	}
-	warp.FireNextDecode(context, data)
-}
-func (this *KeepAlive_Protocol) Destrop() {
-	this.isDestroy = true
-	close(this.readChan)
-	close(this.writeChan)
+	chain.Process(cxt, connContext, data)
 }
 
-func (this *KeepAlive_Protocol) SetSelfWarp(context *coffeenet.Context, warp *coffeenet.ProtocolWarp) {
-	if this.readTimeOut != 0 {
-		go func() {
-			timer := time.NewTimer(0)
-			for !this.isDestroy {
-				timer.Reset(this.readTimeOut)
-				select {
-				case <-timer.C:
-					warp.FireNextEncode(context, KEEP_ALIVE_MSG)
-				case <-this.readChan:
-				}
-			}
-			timer.Stop()
-		}()
-	}
-	if this.writeTimeOut != 0 {
-		go func() {
-			timer := time.NewTimer(0)
-			for !this.isDestroy {
-				timer.Reset(this.writeTimeOut)
-				select {
-				case <-timer.C:
-					warp.FireNextEncode(context, KEEP_ALIVE_MSG)
-				case <-this.writeChan:
-				}
-			}
-			timer.Stop()
-		}()
-	}
+func (kp *keepAliveProtocol) EncodeDestroy() {
+	kp.isDestroy = true
+	close(kp.writeChan)
 }
+
+func (kp *keepAliveProtocol) DecodeDestroy() {
+	kp.isDestroy = true
+	close(kp.readChan)
+}
+
+// func (this *KeepAlive_Protocol) SetSelfWarp(cxt context.Context, connContext netx.ConnContext, warp *netx.ProtocolWarp) {
+// 	if this.readTimeOut != 0 {
+// 		go func() {
+// 			timer := time.NewTimer(0)
+// 			for !this.isDestroy {
+// 				timer.Reset(this.readTimeOut)
+// 				select {
+// 				case <-timer.C:
+// 					warp.FireNextEncode(cxt, connContext, KEEP_ALIVE_MSG)
+// 				case <-this.readChan:
+// 				}
+// 			}
+// 			timer.Stop()
+// 		}()
+// 	}
+// 	if this.writeTimeOut != 0 {
+// 		go func() {
+// 			timer := time.NewTimer(0)
+// 			for !this.isDestroy {
+// 				timer.Reset(this.writeTimeOut)
+// 				select {
+// 				case <-timer.C:
+// 					warp.FireNextEncode(cxt, connContext, KEEP_ALIVE_MSG)
+// 				case <-this.writeChan:
+// 				}
+// 			}
+// 			timer.Stop()
+// 		}()
+// 	}
+// }

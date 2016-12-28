@@ -1,91 +1,139 @@
-// procotol
-package coffeenet
+package netx
 
 import (
+	"context"
+
 	"fmt"
+	"io"
+	"net"
 
 	"github.com/coffeehc/logger"
+	"errors"
 )
 
+//Protocol protocol struct
 type Protocol interface {
+	//用于激活 Protocol 的后台任务
+	Start(cxt context.Context, context ConnContext)// TODO 待考虑
 	//数据编码
-	Encode(context *Context, warp *ProtocolWarp, data interface{})
+	Encode(cxt context.Context, context ConnContext, chain ProtocolChain, data interface{})
 	//数据解码
-	Decode(context *Context, warp *ProtocolWarp, data interface{})
-}
-type ProtocolDestroy interface {
-	//回收
-	Destroy()
+	Decode(cxt context.Context, context ConnContext, chain ProtocolChain, data interface{})
+
+	EncodeDestroy()
+
+	DecodeDestroy()
 }
 
-//协议包装,用于调用下一个协议编码或者下一个协议解码
-type ProtocolWarp struct {
-	protocol Protocol
-	prve     *ProtocolWarp
-	next     *ProtocolWarp
+//NewProtocolChain 创建调用链
+func newProtocolChain(protocol Protocol) (encoder *_ProtocolHandler, decoder *_ProtocolHandler) {
+	return &_ProtocolHandler{
+			handler: protocol.Encode,
+			destroy: protocol.EncodeDestroy,
+			do:      _write,
+		}, &_ProtocolHandler{
+			handler: protocol.Decode,
+			destroy: protocol.DecodeDestroy,
+			do:      _read,
+		}
 }
 
-func newProtocolWarp(protocol Protocol) *ProtocolWarp {
-	warp := new(ProtocolWarp)
-	warp.protocol = protocol
-	return warp
+//ProtocolChain Protocol chain interface
+type ProtocolChain interface {
+	Process(cxt context.Context, connContext ConnContext, data interface{})
 }
 
-func (this *ProtocolWarp) decode(context *Context, data interface{}) {
-	this.protocol.Decode(context, this, data)
+//ProtocolChain 协议包装,用于调用下一个协议编码或者下一个协议解码
+type _ProtocolHandler struct {
+	handler func(cxt context.Context, connContext ConnContext, chain ProtocolChain, data interface{})
+	destroy func()
+	next    *_ProtocolHandler
+	do      func(cxt context.Context, connContext *_ConnContext, data interface{})
 }
 
-//调用下一个协议读取数据
-func (this *ProtocolWarp) FireNextDecode(context *Context, data interface{}) {
-	if data == nil {
-		logger.Warn("Data is nil")
+func (ph *_ProtocolHandler) Fire(cxt context.Context, connContext ConnContext, data interface{}) {
+	if ph.next != nil {
+		ph.handler(cxt, connContext, ph.next, data)
 		return
 	}
-	warp := this.next
-	if warp != nil {
-		warp.decode(context, data)
-	} else {
-		context.handle(data)
-	}
+	ph.do(cxt,connContext.(*_ConnContext),data)
 }
-
-func (this *ProtocolWarp) encode(context *Context, data interface{}) {
-	this.protocol.Encode(context, this, data)
-}
-
-//调用下一个协议写入数据
-func (this *ProtocolWarp) FireNextEncode(context *Context, data interface{}) {
-	if data == nil {
+func (ph *_ProtocolHandler) addNextChain(next *_ProtocolHandler) {
+	if ph.next == nil {
+		ph.next = next
 		return
 	}
-	warp := this.prve
-	if warp != nil {
-		warp.encode(context, data)
-	} else {
-		if v, ok := data.([]byte); ok {
-			context.write(v)
+	ph.next.addNextChain(next)
+}
+
+//Destroy 回收,主要用于buf的回收
+func (ph *_ProtocolHandler) Destroy() {
+	ph.destroy()
+	if ph.next != nil {
+		ph.next.Destroy()
+	}
+}
+
+type emptyProtocol struct {
+}
+
+func (*emptyProtocol) Encode(cxt context.Context, connContext ConnContext, chain ProtocolChain, data interface{}) {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Error("处理数据时出现了不可恢复的异常:%s", err)
+			connContext.Close(cxt)
+		}
+	}()
+	chain.Process(cxt, connContext, data)
+}
+func (*emptyProtocol) Decode(cxt context.Context, connContext ConnContext, chain ProtocolChain, data interface{}) {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.Error("处理数据时出现了不可恢复的异常:%s", err)
+			connContext.Close(cxt)
+		}
+	}()
+	chain.Process(cxt, connContext, data)
+}
+
+func (prorocol *emptyProtocol) EncodeDestroy() {
+	//nothing
+}
+
+func (prorocol *emptyProtocol) DecodeDestroy() {
+	//nothing
+}
+
+func _write(cxt context.Context, c *_ConnContext, data interface{}) {
+	byteData,ok:= data.([]byte)
+	if !ok{
+		logger.Error("发送的数据类型不是[]byte")
+		c.FireException(cxt,errors.New("发送的数据类型不是[]byte"))
+		return
+		
+	}
+	_, err := c.conn.Write(byteData)
+	if err != nil {
+		if err == io.EOF {
+			c.Close(cxt)
+		}
+		if opErr, ok := err.(*net.OpError); ok {
+			if !opErr.Timeout() && !opErr.Temporary() {
+				logger.Error("接收到不可恢复的异常,关闭连接,%s", err)
+				c.Close(cxt)
+			}
 		} else {
-			context.fireException(fmt.Errorf("发送的数据不能转换为byte数组"))
+			c.FireException(cxt, fmt.Errorf("发送内容异常,%#v", err))
 		}
 	}
 }
 
-//回收,主要用于buf的回收
-func (this *ProtocolWarp) Destroy() {
-	if v, ok := this.protocol.(ProtocolDestroy); ok {
-		v.Destroy()
+//处理封装好的数据
+func _read(cxt context.Context, c *_ConnContext, data interface{}){
+	c.workPool <- c.id
+	if c.syncHandle {
+		c.handler.Read(cxt, c, data)
+	} else {
+		go c.handler.Read(cxt, c, data)
 	}
-	if this.next != nil {
-		this.next.Destroy()
-	}
-}
-
-type defaultProtocol struct {
-}
-
-func (this *defaultProtocol) Encode(context *Context, warp *ProtocolWarp, data interface{}) {
-	warp.FireNextEncode(context, data)
-}
-func (this *defaultProtocol) Decode(context *Context, warp *ProtocolWarp, data interface{}) {
-	warp.FireNextDecode(context, data)
 }

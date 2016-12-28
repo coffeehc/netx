@@ -1,10 +1,11 @@
-// nethandler
 package signal
 
 import (
-	"github.com/coffeehc/coffeenet"
-	"github.com/coffeehc/logger"
+	"context"
 	"net"
+
+	"github.com/coffeehc/logger"
+	"github.com/coffeehc/netx"
 )
 
 type netHandler struct {
@@ -12,28 +13,28 @@ type netHandler struct {
 	remortAddr net.Addr
 }
 
-func (this *netHandler) Active(context *coffeenet.Context) {
+func (nh *netHandler) Active(cxt context.Context, connContext netx.ConnContext) {
 }
-func (this *netHandler) Exception(context *coffeenet.Context, err error) {
+func (nh *netHandler) Exception(cxt context.Context, connContext netx.ConnContext, err error) {
 	if opErr, ok := err.(*net.OpError); ok {
 		logger.Error("出现网络异常:%s", opErr)
-		context.Close()
+		connContext.Close(cxt)
 	} else {
 		logger.Error("出现了业务异常:%s", err)
 	}
 }
-func (this *netHandler) Read(context *coffeenet.Context, data interface{}) {
+func (nh *netHandler) Read(cxt context.Context, connContext netx.ConnContext, data interface{}) {
 	if signal, ok := data.(*Signal); ok {
-		handler := this.factory.getHandler(signal.GetSignal())
+		handler := nh.factory.getHandler(signal.GetSignal())
 		if handler != nil {
-			handler.Handle(context, signal)
+			handler.Handle(connContext, signal)
 			return
 		}
-		logger.Error("信令[0x%X]没有对应的处理类",signal.GetSignal())
+		logger.Error("信令[0x%X]没有对应的处理类", signal.GetSignal())
 		return
 	}
 	logger.Error("处理的对象并非Signal类型:[%T]%#v", data, data)
 
 }
-func (this *netHandler) Close(context *coffeenet.Context) {
+func (nh *netHandler) Close(cxt context.Context, connContext netx.ConnContext) {
 }

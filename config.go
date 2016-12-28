@@ -1,27 +1,27 @@
-// config
-package coffeenet
+package netx
 
+//Config net config
 type Config struct {
 	//最大连接数
-	MaxConnection int
+	MaxConnection int `json:"max_connection"`
 	//最大并发处理个数
-	MaxConcurrentHandler int
+	MaxConcurrentHandler int `json:"max_concurrent_handler"`
 	//是否顺序处理消息,默认false,即可以并发处理消息
-	OrderHandler bool
+	SyncHandler bool `json:"sync_handler"`
 }
 
 var (
-	default_config_maxConnecton         = 1000000
-	default_config_maxConcurrentHandler = 1000000
-	default_config                      = &Config{default_config_maxConnecton, default_config_maxConcurrentHandler, false}
+	defaultConfigMaxConnecton         = 1000000
+	defaultConfigMaxConcurrentHandler = 1000000
+	defaultConfig                     = &Config{defaultConfigMaxConnecton, defaultConfigMaxConcurrentHandler, false}
 )
 
 //校验配置是否合法,并自动修复错误值
-func (this *Config) checkConfig() {
-	if this.MaxConnection <= 0 {
-		this.MaxConnection = default_config_maxConnecton
+func (config *Config) checkConfig() {
+	if config.MaxConnection <= 0 {
+		config.MaxConnection = defaultConfigMaxConnecton
 	}
-	if this.MaxConcurrentHandler <= 0 {
-		this.MaxConcurrentHandler = default_config_maxConcurrentHandler
+	if config.MaxConcurrentHandler <= 0 {
+		config.MaxConcurrentHandler = defaultConfigMaxConcurrentHandler
 	}
 }

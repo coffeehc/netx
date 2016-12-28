@@ -1,15 +1,22 @@
 package protocol
 
 import (
-	"github.com/coffeehc/coffeenet"
+	"context"
+
 	"github.com/coffeehc/logger"
+	"github.com/coffeehc/netx"
 	"github.com/golang/snappy"
 )
 
-type Snappy_Protocol struct {
+//NewSnappyProtocol cteate a Snappy Protocol implement
+func NewSnappyProtocol() netx.Protocol {
+	return &snappyProtocol{}
 }
 
-func (this *Snappy_Protocol) Encode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
+type snappyProtocol struct {
+}
+
+func (sp *snappyProtocol) Encode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
 	if v, ok := data.(string); ok {
 		data = []byte(v)
 	}
@@ -20,9 +27,9 @@ func (this *Snappy_Protocol) Encode(context *coffeenet.Context, warp *coffeenet.
 			return
 		}
 	}
-	warp.FireNextEncode(context, data)
+	chain.Process(cxt, connContext, data)
 }
-func (this *Snappy_Protocol) Decode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
+func (sp *snappyProtocol) Decode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
 	if v, ok := data.([]byte); ok {
 		var err error
 		data, err = snappy.Decode(nil, v)
@@ -31,5 +38,9 @@ func (this *Snappy_Protocol) Decode(context *coffeenet.Context, warp *coffeenet.
 			return
 		}
 	}
-	warp.FireNextDecode(context, data)
+	chain.Process(cxt, connContext, data)
 }
+
+func (sp *snappyProtocol) EncodeDestroy() {}
+
+func (sp *snappyProtocol) DecodeDestroy() {}

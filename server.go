@@ -1,5 +1,4 @@
-// server
-package coffeenet
+package netx
 
 import (
 	"errors"
@@ -9,50 +8,56 @@ import (
 	"github.com/coffeehc/logger"
 )
 
-type Closer interface {
+//Server net server
+type Server interface {
+	GetBootstrap() Bootstrap
+	Bind() (err error)
 	Close() error
 }
 
-type Server struct {
+//Server struct define
+type _Server struct {
 	host      string
 	netType   string
 	bootstrap *_bootstrap
-	closer    Closer
+	listener net.Listener
 }
 
-func (this *Server) GetBootstrap() Bootstrap {
-	return this.bootstrap
+//GetBootstrap get base bootstrap
+func (server *_Server) GetBootstrap() Bootstrap {
+	return server.bootstrap
 }
 
-func (this *Server) Bind() (err error) {
+//Bind bind ip and port
+func (server *_Server) Bind() (err error) {
 	defer func() {
 		if errInfo := recover(); errInfo != nil {
 			err = errors.New(logger.Error("bind出现错误:%s", errInfo))
 			return
 		}
 	}()
-	switch this.netType {
+	switch server.netType {
 	case "tcp", "tcp4", "tcp6":
-		this.serveTCP()
+		server.serveTCP()
 	default:
 		panic("暂不支持TCP以外的协议")
 	}
 	return nil
 }
 
-func (this *Server) serveTCP() error {
-	addr, err := net.ResolveTCPAddr(this.netType, this.host)
+func (server *_Server) serveTCP() error {
+	addr, err := net.ResolveTCPAddr(server.netType, server.host)
 	if err != nil {
 		logger.Error("转换TCP地址出现错误:%s", err)
 		return err
 	}
-	listener, err := net.ListenTCP(this.netType, addr)
+	listener, err := net.ListenTCP(server.netType, addr)
 	if err != nil {
 		return fmt.Errorf("bind出现错误:%s", err)
 	}
-	this.closer = listener
-	logger.Info("已经bind:[%s]%s", this.netType, listener.Addr())
-	go func(this *Server) {
+	server.listener = listener
+	logger.Info("已经bind:[%s]%s", server.netType, listener.Addr())
+	go func(server *_Server) {
 		for {
 			conn, err := listener.AcceptTCP()
 			if err != nil {
@@ -65,16 +70,17 @@ func (this *Server) serveTCP() error {
 					}
 				}
 			} else {
-				this.bootstrap.connection(conn)
+				server.bootstrap.connection(conn)
 			}
 		}
-	}(this)
+	}(server)
 	return nil
 }
 
-func (this *Server) Close() error {
-	if this.closer != nil {
-		return this.closer.Close()
+func (server *_Server) Close() error {
+	if server.listener != nil {
+		return server.listener.Close()
 	}
+	//TODO 需要考虑
 	return nil
 }

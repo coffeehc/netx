@@ -2,34 +2,36 @@ package protocol
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 
-	"github.com/coffeehc/coffeenet"
 	"github.com/coffeehc/logger"
+	"github.com/coffeehc/netx"
 )
 
-type LengthField_Protocol struct {
+type lengthFieldProtocol struct {
 	lengthFieldLength int
 	buf               *bytes.Buffer
 	length            int64
 }
 
-func NewLengthFieldProtocol(lengthFieldLength int) *LengthField_Protocol {
+//NewLengthFieldProtocol cteate a LengthField Protocol implement
+func NewLengthFieldProtocol(lengthFieldLength int) netx.Protocol {
 	if lengthFieldLength != 1 && lengthFieldLength != 2 && lengthFieldLength != 4 && lengthFieldLength != 8 {
 		panic("设置的字段长度必须是1,2,4,8,否则协议无法生效")
 	}
-	p := new(LengthField_Protocol)
+	p := new(lengthFieldProtocol)
 	p.lengthFieldLength = lengthFieldLength
 	p.buf = bytes.NewBuffer(nil)
 	return p
 }
 
-func (this *LengthField_Protocol) reset() {
-	this.length = 0
-	this.buf.Reset()
+func (lp *lengthFieldProtocol) reset() {
+	lp.length = 0
+	lp.buf.Reset()
 }
 
-func (this *LengthField_Protocol) Encode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
+func (lp *lengthFieldProtocol) Encode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
 	if v, ok := data.([]byte); ok {
 		length := len(v)
 		if length <= 0 {
@@ -37,7 +39,7 @@ func (this *LengthField_Protocol) Encode(context *coffeenet.Context, warp *coffe
 			return
 		}
 		var sendData []byte
-		switch this.lengthFieldLength {
+		switch lp.lengthFieldLength {
 		case 1:
 			if length >= 256 {
 				logger.Error("发送的数据大于255,丢弃本次数据发送")
@@ -62,63 +64,67 @@ func (this *LengthField_Protocol) Encode(context *coffeenet.Context, warp *coffe
 			binary.BigEndian.PutUint64(sendData, uint64(length))
 			break
 		default:
-			logger.Error("设置了一个错误的字段长度,%d,丢弃本次数据", this.lengthFieldLength)
+			logger.Error("设置了一个错误的字段长度,%d,丢弃本次数据", lp.lengthFieldLength)
 			return
 		}
 		sendData = append(sendData, v...)
 		data = sendData
 	}
-	warp.FireNextEncode(context, data)
+	chain.Process(cxt, connContext, data)
 }
 
-func (this *LengthField_Protocol) Decode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
+func (lp *lengthFieldProtocol) Decode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
 	if v, ok := data.([]byte); ok {
 		if len(v) == 0 {
 			logger.Warn("读取的数据为空")
 			return
 		}
-		if this.length == 0 {
-			lengthSize := this.lengthFieldLength - this.buf.Len()
+		if lp.length == 0 {
+			lengthSize := lp.lengthFieldLength - lp.buf.Len()
 			dataLength := len(v)
 			if dataLength < lengthSize {
-				this.buf.Write(v)
+				lp.buf.Write(v)
 				return
 			}
 			if lengthSize > 0 { //不可能有出现0的情况
-				this.buf.Write(v[:lengthSize])
+				lp.buf.Write(v[:lengthSize])
 			} else {
 				logger.Debug("出现了不可能的情况:lengthSize=%d", lengthSize)
 			}
-			switch this.lengthFieldLength {
+			switch lp.lengthFieldLength {
 			case 1:
-				this.length = int64(this.buf.Bytes()[0])
+				lp.length = int64(lp.buf.Bytes()[0])
 			case 2:
-				this.length = int64(binary.BigEndian.Uint16(this.buf.Bytes()))
+				lp.length = int64(binary.BigEndian.Uint16(lp.buf.Bytes()))
 			case 4:
-				this.length = int64(binary.BigEndian.Uint32(this.buf.Bytes()))
+				lp.length = int64(binary.BigEndian.Uint32(lp.buf.Bytes()))
 			case 8:
-				this.length = int64(binary.BigEndian.Uint64(this.buf.Bytes()))
+				lp.length = int64(binary.BigEndian.Uint64(lp.buf.Bytes()))
 			}
-			this.buf.Reset()
+			lp.buf.Reset()
 			v = v[lengthSize:dataLength]
 		}
-		curLength := int64(this.buf.Len())
-		lastLength := this.length - curLength
+		curLength := int64(lp.buf.Len())
+		lastLength := lp.length - curLength
 		dataLength := int64(len(v))
 		if dataLength < lastLength {
-			this.buf.Write(v)
+			lp.buf.Write(v)
 			return
 		}
-		this.buf.Write(v[:lastLength])
-		result := make([]byte, this.length)
-		copy(result, this.buf.Bytes())
-		warp.FireNextDecode(context, result)
-		this.reset()
+		lp.buf.Write(v[:lastLength])
+		result := make([]byte, lp.length)
+		copy(result, lp.buf.Bytes())
+		chain.Process(cxt, connContext, result)
+		lp.reset()
 		if dataLength > lastLength {
-			this.Decode(context, warp, v[lastLength:])
+			lp.Decode(cxt, connContext, chain, v[lastLength:])
 		}
 	} else {
 		logger.Debug("不能失败")
-		warp.FireNextDecode(context, data)
+		chain.Process(cxt, connContext, data)
 	}
 }
+
+func (lp *lengthFieldProtocol) EncodeDestroy() {}
+
+func (lp *lengthFieldProtocol) DecodeDestroy() {}

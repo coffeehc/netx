@@ -1,18 +1,21 @@
 package protocol
 
 import (
-	"github.com/coffeehc/coffeenet"
+	"context"
+
 	"github.com/coffeehc/logger"
+	"github.com/coffeehc/netx"
 	"github.com/ugorji/go/codec"
 )
 
-type Msgpack_Protocol struct {
+type msgpackProtocol struct {
 	hander *codec.MsgpackHandle
 	interf func() interface{}
 }
 
-func NewMsgpackProcotol(interfFunc func() interface{}) *Msgpack_Protocol {
-	p := &Msgpack_Protocol{hander: new(codec.MsgpackHandle)}
+//NewMsgpackProcotol cteate a Msgpack Protocol implement
+func NewMsgpackProcotol(interfFunc func() interface{}) netx.Protocol {
+	p := &msgpackProtocol{hander: new(codec.MsgpackHandle)}
 	p.interf = interfFunc
 	if p.interf == nil {
 		p.interf = func() interface{} {
@@ -23,21 +26,21 @@ func NewMsgpackProcotol(interfFunc func() interface{}) *Msgpack_Protocol {
 	return p
 }
 
-func (this *Msgpack_Protocol) Encode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
+func (mp *msgpackProtocol) Encode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
 	var b []byte
-	encode := codec.NewEncoderBytes(&b, this.hander)
+	encode := codec.NewEncoderBytes(&b, mp.hander)
 	err := encode.Encode(data)
 	if err != nil {
 		logger.Error("Msgpack序列化错误:%s", err)
 		return
 	}
-	warp.FireNextEncode(context, b)
+	chain.Process(cxt, connContext, b)
 }
 
-func (this *Msgpack_Protocol) Decode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
+func (mp *msgpackProtocol) Decode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
 	if v, ok := data.([]byte); ok {
-		obj := this.interf()
-		decode := codec.NewDecoderBytes(v, this.hander)
+		obj := mp.interf()
+		decode := codec.NewDecoderBytes(v, mp.hander)
 		err := decode.Decode(obj)
 		if err != nil {
 			logger.Error("Msgpack反序列化失败:%s", err)
@@ -45,5 +48,9 @@ func (this *Msgpack_Protocol) Decode(context *coffeenet.Context, warp *coffeenet
 		}
 		data = obj
 	}
-	warp.FireNextDecode(context, data)
+	chain.Process(cxt, connContext, data)
 }
+
+func (mp *msgpackProtocol) EncodeDestroy() {}
+
+func (mp *msgpackProtocol) DecodeDestroy() {}

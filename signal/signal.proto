@@ -1,24 +1,26 @@
-syntax = "proto2";
+syntax = "proto3";
 package signal;
 
+//Signal 信令结构定义
 message Signal {
 	//信令值,uint32
-	required uint32 signal = 1;
+	uint32 signal = 1;
 	//序列号
-	optional int64 sequence = 2;
+	int64 sequence = 2;
 	//版本号
-	optional uint32 version = 3 [default=1];
+	uint32 version = 3;
 	//信令头扩展
-	repeated Header headers = 4;
+	Header headers = 4;
 	//信令内容
-	optional bytes data = 5;
+	bytes data = 5;
 }
 
+//Header 信令头定义
 message Header {
 	//头定义
-	required string key = 1;
+	string key = 1;
 	//值
-	required string value = 2;
+	string value = 2;
 }
 
 

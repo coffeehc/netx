@@ -1,26 +1,28 @@
-// interface
 package signal
 
 import (
-	"github.com/coffeehc/coffeenet"
 	"net"
+
+	"github.com/coffeehc/netx"
 )
 
-//信令处理接口
-type SignalHandler interface {
+//Handler 信令处理接口
+type Handler interface {
 	//处理信令
-	Handle(context *coffeenet.Context, signal *Signal)
+	Handle(context netx.ConnContext, signal *Signal)
 }
 
-type SignalEngine interface {
-	RegisterSignal(signalCode uint32, handler SignalHandler) error
-	AddListen(name string, listen coffeenet.ContextListen)
+//Engine 信令处理引擎
+type Engine interface {
+	RegisterSignal(signalCode uint32, handler Handler) error
+	AddListen(name string, listen netx.ContextListen)
 	Connection(addr *net.TCPAddr) error
-	Bind(addr *net.TCPAddr) (*coffeenet.Server, error)
+	Bind(addr *net.TCPAddr) (netx.Server, error)
 	Close()
-	GetBootStrap() coffeenet.Bootstrap
+	GetBootStrap() netx.Bootstrap
 }
 
+//NewSimpleSignal 创建一个低级别的 Signal
 func NewSimpleSignal(signal uint32, data []byte) *Signal {
 	return &Signal{Signal: &signal, Data: data}
 }

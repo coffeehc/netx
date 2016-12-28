@@ -2,35 +2,41 @@ package protocol
 
 import (
 	"bytes"
+	"context"
 
-	"github.com/coffeehc/coffeenet"
+	"github.com/coffeehc/netx"
 )
 
-type Terminal_Protocol struct {
+type terminalProtocol struct {
 	buf *bytes.Buffer
 }
 
-func NewTerminalProtocol() *Terminal_Protocol {
-	p := new(Terminal_Protocol)
+//NewTerminalProtocol cteate a Terminal Protocol implement
+func NewTerminalProtocol() netx.Protocol {
+	p := new(terminalProtocol)
 	p.buf = bytes.NewBuffer(nil)
 	return p
 }
 
-func (this *Terminal_Protocol) Encode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
-	warp.FireNextEncode(context, data)
+func (tp *terminalProtocol) Encode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
+	chain.Process(cxt, connContext, data)
 }
-func (this *Terminal_Protocol) Decode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
+func (tp *terminalProtocol) Decode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
 	if v, ok := data.([]byte); ok {
 		for _, d := range v {
 			if d == '\n' {
-				bs := make([]byte, this.buf.Len())
-				this.buf.Read(bs)
-				warp.FireNextDecode(context, bs)
+				bs := make([]byte, tp.buf.Len())
+				tp.buf.Read(bs)
+				chain.Process(cxt, connContext, bs)
 			} else {
-				this.buf.WriteByte(d)
+				tp.buf.WriteByte(d)
 			}
 		}
 	} else {
-		warp.FireNextDecode(context, data)
+		chain.Process(cxt, connContext, data)
 	}
 }
+
+func (tp *terminalProtocol) EncodeDestroy() {}
+
+func (tp *terminalProtocol) DecodeDestroy() {}

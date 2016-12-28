@@ -1,18 +1,20 @@
 package protocol
 
 import (
-	"encoding/json"
+	"context"
 
-	"github.com/coffeehc/coffeenet"
 	"github.com/coffeehc/logger"
+	"github.com/coffeehc/netx"
+	"github.com/pquerna/ffjson/ffjson"
 )
 
-type JsonProtocol struct {
+type jsonProtocol struct {
 	interf func() interface{}
 }
 
-func NewJsonProtocol(interfFunc func() interface{}) *JsonProtocol {
-	p := new(JsonProtocol)
+//NewJSONProtocol cteate a json Protocol implement
+func NewJSONProtocol(interfFunc func() interface{}) netx.Protocol {
+	p := new(jsonProtocol)
 	p.interf = interfFunc
 	if p.interf == nil {
 		p.interf = func() interface{} {
@@ -23,25 +25,29 @@ func NewJsonProtocol(interfFunc func() interface{}) *JsonProtocol {
 	return p
 }
 
-func (this *JsonProtocol) Encode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
-	b, err := json.Marshal(data)
+func (jp *jsonProtocol) Encode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
+	b, err := ffjson.Marshal(data)
 	if err != nil {
 		logger.Error("Json序列化错误:%s", err)
 		return
 	}
-	warp.FireNextEncode(context, b)
+	chain.Process(cxt, connContext, b)
 }
 
-func (this *JsonProtocol) Decode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
+func (jp *jsonProtocol) Decode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
 	if v, ok := data.([]byte); ok {
-		obj := this.interf()
-		err := json.Unmarshal(v, obj)
+		obj := jp.interf()
+		err := ffjson.Unmarshal(v, obj)
 		if err != nil {
 			logger.Error("Json反序列化失败:%s", err)
 			return
 		}
 		data = obj
 	}
-	warp.FireNextDecode(context, data)
+	chain.Process(cxt, connContext, data)
 
 }
+
+func (jp *jsonProtocol) EncodeDestroy() {}
+
+func (jp *jsonProtocol) DecodeDestroy() {}

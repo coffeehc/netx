@@ -5,13 +5,20 @@ import (
 	"compress/gzip"
 	"io"
 
-	"github.com/coffeehc/coffeenet"
+	"context"
+
+	"github.com/coffeehc/netx"
 )
 
-type Gizp_Protocol struct {
+//NewGizpProtocol cteate a gzip protocol implement
+func NewGizpProtocol() netx.Protocol {
+	return &gizpProtocol{}
 }
 
-func (this *Gizp_Protocol) Encode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
+type gizpProtocol struct {
+}
+
+func (gp *gizpProtocol) Encode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
 	if b, ok := data.([]byte); ok {
 		buf := bytes.NewBuffer(nil)
 		writer := gzip.NewWriter(buf)
@@ -21,10 +28,10 @@ func (this *Gizp_Protocol) Encode(context *coffeenet.Context, warp *coffeenet.Pr
 			data = buf.Bytes()
 		}
 	}
-	warp.FireNextEncode(context, data)
+	chain.Process(cxt, connContext, data)
 }
 
-func (this *Gizp_Protocol) Decode(context *coffeenet.Context, warp *coffeenet.ProtocolWarp, data interface{}) {
+func (gp *gizpProtocol) Decode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
 	if b, ok := data.([]byte); ok {
 		buf := bytes.NewBuffer(nil)
 		reader, err := gzip.NewReader(bytes.NewBuffer(b))
@@ -36,5 +43,9 @@ func (this *Gizp_Protocol) Decode(context *coffeenet.Context, warp *coffeenet.Pr
 			}
 		}
 	}
-	warp.FireNextDecode(context, data)
+	chain.Process(cxt, connContext, data)
 }
+
+func (gp *gizpProtocol) EncodeDestroy() {}
+
+func (gp *gizpProtocol) DecodeDestroy() {}

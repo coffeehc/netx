@@ -1,9 +1,13 @@
-// channle.go
-package coffeenet
+package netx
 
+import (
+	"context"
+)
+
+//Handler 处理器接口
 type Handler interface {
-	Active(context *Context)
-	Exception(context *Context, err error)
-	Read(context *Context, data interface{})
-	Close(context *Context)
+	Active(cxt context.Context, context ConnContext) 
+	Exception(cxt context.Context, connContext ConnContext, err error)
+	Read(cxt context.Context, connContext ConnContext, data interface{})
+	Close(context.Context, ConnContext)
 }

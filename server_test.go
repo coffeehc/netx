@@ -1,42 +1,43 @@
-package coffeenet
+package netx_test
 
 import (
 	"fmt"
 	"testing"
 	"time"
 
+	"context"
+
 	"github.com/coffeehc/logger"
+	"github.com/coffeehc/netx"
 )
 
 type testHandler struct {
 }
 
-func (this *testHandler) Active(context *Context) {
+func (this *testHandler) Active(cxt context.Context, connContext netx.ConnContext) {
 	logger.Debug("已经激活了一个连接")
 	//context.Write([]byte("欢迎您的到来\n"))
 }
-func (this *testHandler) Exception(context *Context, err error) {
+func (this *testHandler) Exception(cxt context.Context, connContext netx.ConnContext, err error) {
 	logger.Error("接收到一个异常:%s", err)
 }
-func (this *testHandler) Read(context *Context, data interface{}) {
+func (this *testHandler) Read(cxt context.Context, connContext netx.ConnContext, data interface{}) {
 	//	logger.Debug("接收到的消息是:%s", data)
 	if fmt.Sprintf("%s", data) == "next" {
-		msg := fmt.Sprintf("现在时间:\n%s\nnext\n", time.Now().Format(logger.LOGGER_TIMEFORMAT_NANOSECOND))
+		msg := fmt.Sprintf("现在时间:\n%s\nnext\n", time.Now().Format(logger.LoggerTimeformatNanosecond))
 		//logger.Debug("发送消息")
-		context.Write([]byte(msg))
+		connContext.Write(cxt, []byte(msg))
 	}
 }
-func (this *testHandler) Close(context *Context) {
+func (this *testHandler) Close(cxt context.Context, connContext netx.ConnContext) {
 	logger.Debug("连接关闭掉了")
 }
 
 func TestServer(t *testing.T) {
-	contextFactory := NewContextFactory(func(context *Context) {
-		//设置
-		context.SetProtocols([]Protocol{new(defaultProtocol)})
-		context.SetHandler(new(testHandler))
-	})
-	bootstrap := NewBootStrap(new(Config), contextFactory, nil)
+	initContextFactoryFunc := func(cxt context.Context,connContext netx.ConnContext) {
+		connContext.SetHandler(new(testHandler))
+	}
+	bootstrap := netx.NewBootStrap(new(netx.Config), initContextFactoryFunc, nil)
 	server := bootstrap.NewServer("tcp", "127.0.0.1:9991")
 	err := server.Bind()
 	if err != nil {
@@ -47,12 +48,12 @@ func TestServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("连接服务器出现错误:%s", err)
 	}
-	context := client.GetContext()
+	connContext := client.GetConnContext()
 	for i := 0; i < 10; i++ {
-		context.Write([]byte(fmt.Sprintln("开始了\nnext")))
+		connContext.Write(context.Background(), []byte(fmt.Sprintln("开始了\nnext")))
 	}
 	time.Sleep(time.Millisecond * 300)
-	context.Close()
+	connContext.Close(context.Background())
 	server.Close()
 	bootstrap.Close()
 }
