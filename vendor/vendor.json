@@ -1,0 +1,56 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "3Tm0wLtovBa+B2cQiz/QUt4uSx8=",
+			"path": "github.com/coffeehc/logger",
+			"revision": "1bfb928bb35c7981cea7245b9c1f14f3a5f305d9",
+			"revisionTime": "2016-12-25T09:28:12Z"
+		},
+		{
+			"checksumSHA1": "kBeNcaKk56FguvPSUCEaH6AxpRc=",
+			"path": "github.com/golang/protobuf/proto",
+			"revision": "8ee79997227bf9b34611aee7946ae64735e6fd93",
+			"revisionTime": "2016-11-17T03:31:26Z"
+		},
+		{
+			"checksumSHA1": "W+E/2xXcE1GmJ0Qb784ald0Fn6I=",
+			"path": "github.com/golang/snappy",
+			"revision": "d9eb7a3d35ec988b8585d4a0068e462c27d28380",
+			"revisionTime": "2016-05-29T05:00:41Z"
+		},
+		{
+			"checksumSHA1": "sKfYQurIIt+ldKDDF7TRbg9w20I=",
+			"path": "github.com/pquerna/ffjson/ffjson",
+			"revision": "c24ab9baf274473906fbdba5fccb594aec4b9ff1",
+			"revisionTime": "2016-12-13T16:03:21Z"
+		},
+		{
+			"checksumSHA1": "D1JbeyQhazKyXOokR5w7XrHWWw8=",
+			"path": "github.com/pquerna/ffjson/fflib/v1",
+			"revision": "c24ab9baf274473906fbdba5fccb594aec4b9ff1",
+			"revisionTime": "2016-12-13T16:03:21Z"
+		},
+		{
+			"checksumSHA1": "iZHmHPBzKJiS6ROUaVOf4DVOhbA=",
+			"path": "github.com/pquerna/ffjson/fflib/v1/internal",
+			"revision": "c24ab9baf274473906fbdba5fccb594aec4b9ff1",
+			"revisionTime": "2016-12-13T16:03:21Z"
+		},
+		{
+			"checksumSHA1": "+ajZXCpD7wIHE4F9jD8/tO+shBo=",
+			"path": "github.com/ugorji/go/codec",
+			"revision": "9c7f9b7a2bc3a520f7c7b30b34b7f85f47fe27b6",
+			"revisionTime": "2016-11-30T06:17:42Z"
+		},
+		{
+			"checksumSHA1": "12GqsW8PiRPnezDDy0v4brZrndM=",
+			"origin": "github.com/coffeehc/logger/vendor/gopkg.in/yaml.v2",
+			"path": "gopkg.in/yaml.v2",
+			"revision": "1bfb928bb35c7981cea7245b9c1f14f3a5f305d9",
+			"revisionTime": "2016-12-25T09:28:12Z"
+		}
+	],
+	"rootPath": "github.com/coffeehc/netx"
+}
