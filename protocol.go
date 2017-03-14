@@ -7,14 +7,14 @@ import (
 	"io"
 	"net"
 
-	"github.com/coffeehc/logger"
 	"errors"
+	"github.com/coffeehc/logger"
 )
 
 //Protocol protocol struct
 type Protocol interface {
 	//用于激活 Protocol 的后台任务
-	Start(cxt context.Context, context ConnContext)// TODO 待考虑
+	//Start(cxt context.Context, context ConnContext)// TODO 待考虑
 	//数据编码
 	Encode(cxt context.Context, context ConnContext, chain ProtocolChain, data interface{})
 	//数据解码
@@ -40,7 +40,7 @@ func newProtocolChain(protocol Protocol) (encoder *_ProtocolHandler, decoder *_P
 
 //ProtocolChain Protocol chain interface
 type ProtocolChain interface {
-	Process(cxt context.Context, connContext ConnContext, data interface{})
+	Fire(cxt context.Context, connContext ConnContext, data interface{})
 }
 
 //ProtocolChain 协议包装,用于调用下一个协议编码或者下一个协议解码
@@ -56,8 +56,9 @@ func (ph *_ProtocolHandler) Fire(cxt context.Context, connContext ConnContext, d
 		ph.handler(cxt, connContext, ph.next, data)
 		return
 	}
-	ph.do(cxt,connContext.(*_ConnContext),data)
+	ph.do(cxt, connContext.(*_ConnContext), data)
 }
+
 func (ph *_ProtocolHandler) addNextChain(next *_ProtocolHandler) {
 	if ph.next == nil {
 		ph.next = next
@@ -77,6 +78,10 @@ func (ph *_ProtocolHandler) Destroy() {
 type emptyProtocol struct {
 }
 
+func (*emptyProtocol) Start(cxt context.Context, context ConnContext) {
+
+}
+
 func (*emptyProtocol) Encode(cxt context.Context, connContext ConnContext, chain ProtocolChain, data interface{}) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -84,7 +89,7 @@ func (*emptyProtocol) Encode(cxt context.Context, connContext ConnContext, chain
 			connContext.Close(cxt)
 		}
 	}()
-	chain.Process(cxt, connContext, data)
+	chain.Fire(cxt, connContext, data)
 }
 func (*emptyProtocol) Decode(cxt context.Context, connContext ConnContext, chain ProtocolChain, data interface{}) {
 	defer func() {
@@ -93,7 +98,7 @@ func (*emptyProtocol) Decode(cxt context.Context, connContext ConnContext, chain
 			connContext.Close(cxt)
 		}
 	}()
-	chain.Process(cxt, connContext, data)
+	chain.Fire(cxt, connContext, data)
 }
 
 func (prorocol *emptyProtocol) EncodeDestroy() {
@@ -105,12 +110,12 @@ func (prorocol *emptyProtocol) DecodeDestroy() {
 }
 
 func _write(cxt context.Context, c *_ConnContext, data interface{}) {
-	byteData,ok:= data.([]byte)
-	if !ok{
+	byteData, ok := data.([]byte)
+	if !ok {
 		logger.Error("发送的数据类型不是[]byte")
-		c.FireException(cxt,errors.New("发送的数据类型不是[]byte"))
+		c.FireException(cxt, errors.New("发送的数据类型不是[]byte"))
 		return
-		
+
 	}
 	_, err := c.conn.Write(byteData)
 	if err != nil {
@@ -129,7 +134,7 @@ func _write(cxt context.Context, c *_ConnContext, data interface{}) {
 }
 
 //处理封装好的数据
-func _read(cxt context.Context, c *_ConnContext, data interface{}){
+func _read(cxt context.Context, c *_ConnContext, data interface{}) {
 	c.workPool <- c.id
 	if c.syncHandle {
 		c.handler.Read(cxt, c, data)

@@ -70,7 +70,7 @@ func (lp *lengthFieldProtocol) Encode(cxt context.Context, connContext netx.Conn
 		sendData = append(sendData, v...)
 		data = sendData
 	}
-	chain.Process(cxt, connContext, data)
+	chain.Fire(cxt, connContext, data)
 }
 
 func (lp *lengthFieldProtocol) Decode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
@@ -114,14 +114,14 @@ func (lp *lengthFieldProtocol) Decode(cxt context.Context, connContext netx.Conn
 		lp.buf.Write(v[:lastLength])
 		result := make([]byte, lp.length)
 		copy(result, lp.buf.Bytes())
-		chain.Process(cxt, connContext, result)
+		chain.Fire(cxt, connContext, result)
 		lp.reset()
 		if dataLength > lastLength {
 			lp.Decode(cxt, connContext, chain, v[lastLength:])
 		}
 	} else {
 		logger.Debug("不能失败")
-		chain.Process(cxt, connContext, data)
+		chain.Fire(cxt, connContext, data)
 	}
 }
 

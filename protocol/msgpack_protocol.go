@@ -34,7 +34,7 @@ func (mp *msgpackProtocol) Encode(cxt context.Context, connContext netx.ConnCont
 		logger.Error("Msgpack序列化错误:%s", err)
 		return
 	}
-	chain.Process(cxt, connContext, b)
+	chain.Fire(cxt, connContext, b)
 }
 
 func (mp *msgpackProtocol) Decode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
@@ -48,7 +48,7 @@ func (mp *msgpackProtocol) Decode(cxt context.Context, connContext netx.ConnCont
 		}
 		data = obj
 	}
-	chain.Process(cxt, connContext, data)
+	chain.Fire(cxt, connContext, data)
 }
 
 func (mp *msgpackProtocol) EncodeDestroy() {}

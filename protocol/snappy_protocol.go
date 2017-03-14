@@ -27,7 +27,7 @@ func (sp *snappyProtocol) Encode(cxt context.Context, connContext netx.ConnConte
 			return
 		}
 	}
-	chain.Process(cxt, connContext, data)
+	chain.Fire(cxt, connContext, data)
 }
 func (sp *snappyProtocol) Decode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
 	if v, ok := data.([]byte); ok {
@@ -38,7 +38,7 @@ func (sp *snappyProtocol) Decode(cxt context.Context, connContext netx.ConnConte
 			return
 		}
 	}
-	chain.Process(cxt, connContext, data)
+	chain.Fire(cxt, connContext, data)
 }
 
 func (sp *snappyProtocol) EncodeDestroy() {}

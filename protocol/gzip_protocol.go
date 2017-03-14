@@ -28,7 +28,7 @@ func (gp *gizpProtocol) Encode(cxt context.Context, connContext netx.ConnContext
 			data = buf.Bytes()
 		}
 	}
-	chain.Process(cxt, connContext, data)
+	chain.Fire(cxt, connContext, data)
 }
 
 func (gp *gizpProtocol) Decode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
@@ -43,7 +43,7 @@ func (gp *gizpProtocol) Decode(cxt context.Context, connContext netx.ConnContext
 			}
 		}
 	}
-	chain.Process(cxt, connContext, data)
+	chain.Fire(cxt, connContext, data)
 }
 
 func (gp *gizpProtocol) EncodeDestroy() {}

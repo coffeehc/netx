@@ -38,7 +38,7 @@ func NewKeepAliveProtocol(readTimeOut, writeTimeOut time.Duration, msg []byte) n
 
 func (kp *keepAliveProtocol) Encode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
 	kp.readChan <- true
-	chain.Process(cxt, connContext, data)
+	chain.Fire(cxt, connContext, data)
 }
 func (kp *keepAliveProtocol) Decode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
 	kp.readChan <- true
@@ -53,7 +53,7 @@ func (kp *keepAliveProtocol) Decode(cxt context.Context, connContext netx.ConnCo
 			return
 		}
 	}
-	chain.Process(cxt, connContext, data)
+	chain.Fire(cxt, connContext, data)
 }
 
 func (kp *keepAliveProtocol) EncodeDestroy() {

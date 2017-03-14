@@ -24,5 +24,5 @@ type Engine interface {
 
 //NewSimpleSignal 创建一个低级别的 Signal
 func NewSimpleSignal(signal uint32, data []byte) *Signal {
-	return &Signal{Signal: &signal, Data: data}
+	return &Signal{Signal: signal, Data: data}
 }

@@ -1,4 +1,3 @@
-
 package protocol
 
 import (
@@ -33,7 +32,7 @@ func (pp *protoBufProtocol) Encode(cxt context.Context, connContext netx.ConnCon
 		}
 		data = buf
 	}
-	chain.Process(cxt, connContext, data)
+	chain.Fire(cxt, connContext, data)
 }
 
 func (pp *protoBufProtocol) Decode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
@@ -46,7 +45,7 @@ func (pp *protoBufProtocol) Decode(cxt context.Context, connContext netx.ConnCon
 		}
 		data = message
 	}
-	chain.Process(cxt, connContext, data)
+	chain.Fire(cxt, connContext, data)
 }
 
 func (pp *protoBufProtocol) EncodeDestroy() {}

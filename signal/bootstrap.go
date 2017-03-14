@@ -7,11 +7,13 @@ import (
 
 	"time"
 
+	"context"
 	"github.com/coffeehc/logger"
 	"github.com/coffeehc/netx"
 	"github.com/coffeehc/netx/protocol"
 	"github.com/golang/protobuf/proto"
 )
+
 //NewSignalBootstrap create a signal bootstrap
 func NewSignalBootstrap(config *netx.Config, netSetting func(conn net.Conn), compressProtocol netx.Protocol, listens map[string]netx.ContextListen) Engine {
 	factroy := new(initFactory)
@@ -23,6 +25,7 @@ func NewSignalBootstrap(config *netx.Config, netSetting func(conn net.Conn), com
 	if factroy.listens == nil {
 		factroy.listens = make(map[string]netx.ContextListen)
 	}
+	factroy.compressProtocol = compressProtocol
 	return factroy
 
 }
@@ -47,7 +50,7 @@ func (f *initFactory) AddListen(name string, listen netx.ContextListen) {
 	f.listens[name] = listen
 }
 
-func (f *initFactory) initContextFactory(context netx.ConnContext) {
+func (f *initFactory) initContextFactory(cxt context.Context, context netx.ConnContext) {
 	for name, listen := range f.listens {
 		context.AddListen(name, listen)
 	}
@@ -56,7 +59,7 @@ func (f *initFactory) initContextFactory(context netx.ConnContext) {
 		protocols = append(protocols, f.compressProtocol)
 	}
 	protocols = append(protocols, protocol.NewProtoBufProcotol(func() proto.Message { return new(Signal) }))
-	context.SetProtocols(protocols)
+	context.SetProtocols(protocols...)
 	context.SetHandler(&netHandler{factory: f, remortAddr: context.RemoteAddr()})
 }
 

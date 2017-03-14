@@ -31,7 +31,7 @@ func (jp *jsonProtocol) Encode(cxt context.Context, connContext netx.ConnContext
 		logger.Error("Json序列化错误:%s", err)
 		return
 	}
-	chain.Process(cxt, connContext, b)
+	chain.Fire(cxt, connContext, b)
 }
 
 func (jp *jsonProtocol) Decode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
@@ -44,7 +44,7 @@ func (jp *jsonProtocol) Decode(cxt context.Context, connContext netx.ConnContext
 		}
 		data = obj
 	}
-	chain.Process(cxt, connContext, data)
+	chain.Fire(cxt, connContext, data)
 
 }
 

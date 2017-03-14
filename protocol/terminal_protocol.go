@@ -19,7 +19,7 @@ func NewTerminalProtocol() netx.Protocol {
 }
 
 func (tp *terminalProtocol) Encode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
-	chain.Process(cxt, connContext, data)
+	chain.Fire(cxt, connContext, data)
 }
 func (tp *terminalProtocol) Decode(cxt context.Context, connContext netx.ConnContext, chain netx.ProtocolChain, data interface{}) {
 	if v, ok := data.([]byte); ok {
@@ -27,13 +27,13 @@ func (tp *terminalProtocol) Decode(cxt context.Context, connContext netx.ConnCon
 			if d == '\n' {
 				bs := make([]byte, tp.buf.Len())
 				tp.buf.Read(bs)
-				chain.Process(cxt, connContext, bs)
+				chain.Fire(cxt, connContext, bs)
 			} else {
 				tp.buf.WriteByte(d)
 			}
 		}
 	} else {
-		chain.Process(cxt, connContext, data)
+		chain.Fire(cxt, connContext, data)
 	}
 }
 

@@ -95,7 +95,7 @@ func (c *_ConnContext) RemoveListen(name string) {
 }
 
 //RemoteAddr 获取远程地址
-func (c *_ConnContext)RemoteAddr() net.Addr{
+func (c *_ConnContext) RemoteAddr() net.Addr {
 	return c.conn.RemoteAddr()
 }
 
@@ -118,7 +118,8 @@ func (c *_ConnContext) SetHandler(handler Handler) {
 func (c *_ConnContext) SetProtocols(protocols ...Protocol) {
 	for _, protocol := range protocols {
 		encoder, decoder := newProtocolChain(protocol)
-		c.encoder.addNextChain(encoder)
+		encoder.next = c.encoder
+		c.encoder = encoder
 		c.decoder.addNextChain(decoder)
 	}
 }
